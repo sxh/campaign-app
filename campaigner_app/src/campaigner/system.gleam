@@ -33,7 +33,14 @@ pub fn start() {
 }
 
 pub fn init(logger: Logger) -> Result(#(config.Config, vault.Context), String) {
-  case config.load() {
+  init_with_config_loader(logger, config.load)
+}
+
+pub fn init_with_config_loader(
+  logger: Logger,
+  load_config: fn() -> Result(config.Config, config.ConfigError),
+) -> Result(#(config.Config, vault.Context), String) {
+  case load_config() {
     Ok(cfg) -> {
       let ctx =
         vault.Context(

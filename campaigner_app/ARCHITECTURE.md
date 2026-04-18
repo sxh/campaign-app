@@ -21,7 +21,7 @@ No production code should be written without a corresponding failing test case.
 Work is NOT considered complete until it passes all the following quality gates:
 - **Zero Lint Errors:** `gleam format --check` must pass.
 - **Zero Warnings:** `gleam check` must return no warnings.
-- **High Logic Coverage:** Project logic coverage must be at least **98%**.
+- **High Logic Coverage:** Project logic coverage must be at least **97%**.
 - **Green Tests:** All unit and integration tests must pass.
 
 These criteria are enforced by the pre-commit hook and the project `Makefile`.

@@ -20,8 +20,8 @@ coverage:
 		{Cov, Uncov} = lists:foldl(fun(M, {AccC1, AccU1}) -> \
 			case cover:analyse(M, coverage, line) of \
 				{ok, Lines} -> \
-					lists:foldl(fun({{_, _}, {C, _}}, {AC, AU}) -> \
-						{AC + C, AU + (1 - C)} \
+					lists:foldl(fun({{_, _}, {C, _}}, {AccC, AccU}) -> \
+						{AccC + C, AccU + (1 - C)} \
 					end, {AccC1, AccU1}, Lines); \
 				_ -> {AccC1, AccU1} \
 			end \
@@ -43,8 +43,8 @@ check-coverage: lint warnings
 		{Cov, Uncov} = lists:foldl(fun(M, {AccC1, AccU1}) -> \
 			case cover:analyse(M, coverage, line) of \
 				{ok, Lines} -> \
-					lists:foldl(fun({{_, _}, {C, _}}, {AC, AU}) -> \
-						{AC + C, AU + (1 - C)} \
+					lists:foldl(fun({{_, _}, {C, _}}, {AccC, AccU}) -> \
+						{AccC + C, AccU + (1 - C)} \
 					end, {AccC1, AccU1}, Lines); \
 				_ -> {AccC1, AccU1} \
 			end \

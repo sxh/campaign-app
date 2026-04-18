@@ -15,7 +15,7 @@ import factories
 import gleam/bit_array
 import gleam/bytes_tree
 import gleam/dict
-import gleam/http.{Post}
+import gleam/http.{Get, Post}
 import gleam/http/request
 import gleam/string
 import gleeunit
@@ -476,12 +476,19 @@ pub fn router_chat_engine_error_test() {
 }
 
 pub fn system_init_fail_test() {
-  // We can't easily mock the config.load() internal call without a port,
-  // but we can test the error mapping if we expose a helper or refactor.
-  // For now, let's target dashboard_service rendering of specific errors.
-  let err = vault.InvalidPath("reason")
-  let html = service.render_error_page(err) |> element.to_string
-  html |> string.contains("Invalid Path") |> should.be_true
+  let logger = factories.logger_silent()
+
+  let res =
+    system.init_with_config_loader(logger, fn() {
+      Error(config.EnvironmentVariableMissing("TEST_VAR"))
+    })
+  res |> should.equal(Error("Environment variable missing: TEST_VAR"))
+
+  let res2 =
+    system.init_with_config_loader(logger, fn() {
+      Error(config.InvalidConfigPath("bad path"))
+    })
+  res2 |> should.equal(Error("Invalid configuration: bad path"))
 }
 
 pub fn logger_integration_test() {
@@ -489,4 +496,64 @@ pub fn logger_integration_test() {
   logger.info("Test Info", [#("key", "val")])
   logger.error("Test Error", [])
   True |> should.be_true()
+}
+
+pub fn service_render_error_file_read_test() {
+  let err = vault.FileReadError("/path/to/file", simplifile.Eacces)
+  let html = service.render_error_page(err) |> element.to_string
+  html |> string.contains("Read Error") |> should.be_true
+  html |> string.contains("/path/to/file") |> should.be_true
+}
+
+pub fn service_render_404_page_test() {
+  let html = service.render_404_page() |> element.to_string
+  html |> string.contains("404 - Not Found") |> should.be_true
+}
+
+pub fn router_serve_404_test() {
+  let res = router.serve_404()
+  res.status |> should.equal(404)
+  let assert Ok(body) =
+    res.body |> bytes_tree.to_bit_array |> bit_array.to_string
+  body |> string.contains("404 - Not Found") |> should.be_true
+}
+
+pub fn system_init_success_test() {
+  let logger = factories.logger_silent()
+  let res =
+    system.init_with_config_loader(logger, fn() {
+      let assert Ok(path) = vault.vault_path_from_string("/vault")
+      Ok(config.Config(vault_path: path))
+    })
+  res |> should.be_ok()
+}
+
+pub fn router_chat_post_empty_prompt_test() {
+  let path = factories.vault_path("/vault")
+  let ctx = factories.context()
+
+  let req =
+    request.new()
+    |> request.set_method(Post)
+    |> request.set_path("/chat")
+    |> request.set_query([#("prompt", "")])
+
+  let res = router.router(req, path, ctx)
+  res.status |> should.equal(200)
+
+  let assert Ok(body) =
+    res.body |> bytes_tree.to_bit_array |> bit_array.to_string
+  body |> string.contains("Please enter a question.") |> should.be_true
+}
+
+pub fn router_chat_get_test() {
+  let path = factories.vault_path("/vault")
+  let ctx = factories.context()
+  let req =
+    request.new() |> request.set_method(Get) |> request.set_path("/chat")
+  let res = router.router(req, path, ctx)
+  res.status |> should.equal(200)
+  let assert Ok(body) =
+    res.body |> bytes_tree.to_bit_array |> bit_array.to_string
+  body |> string.contains("Chat with your Vault") |> should.be_true
 }
