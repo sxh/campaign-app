@@ -14,7 +14,7 @@ pub fn render_dashboard(stats: Stats) {
     html.ul([], [
       html.li([], [
         element.text("Vault Path: "),
-        html.code([], [element.text(stats.vault_path)])
+        html.code([], [element.text(vault.vault_path_to_string(stats.vault_path))])
       ]),
       html.li([], [
         element.text("Total Files: "),

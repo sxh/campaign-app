@@ -16,22 +16,39 @@ pub fn real_fs() -> FileSystem {
   )
 }
 
+pub opaque type VaultPath {
+  VaultPath(path: String)
+}
+
+pub fn vault_path_from_string(path: String) -> VaultPath {
+  VaultPath(path)
+}
+
+pub fn vault_path_to_string(path: VaultPath) -> String {
+  path.path
+}
+
+pub type Context {
+  Context(fs: FileSystem)
+}
+
 pub type Stats {
   Stats(
     total_files: Int, 
     md_files: Int, 
     image_files: Int, 
     total_characters: Int,
-    vault_path: String
+    vault_path: VaultPath
   )
 }
 
-pub fn gather_stats(path: String, fs: FileSystem) -> Stats {
-  case fs.get_files(path) {
+pub fn gather_stats(path: VaultPath, ctx: Context) -> Stats {
+  let path_str = vault_path_to_string(path)
+  case ctx.fs.get_files(path_str) {
     Ok(files) -> {
       let md_files = list.filter(files, is_markdown)
       let image_files = list.filter(files, is_image)
-      let total_chars = count_characters(md_files, fs.read)
+      let total_chars = count_characters(md_files, ctx.fs.read)
 
       Stats(
         total_files: list.length(files),
