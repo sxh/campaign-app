@@ -29,8 +29,8 @@ pub fn context_with_fs(fs) -> vault.Context {
 
 pub fn logger_silent() -> logger.Logger {
   logger.Logger(
-    info: fn(_) { Nil },
-    error: fn(_) { Nil }
+    info: fn(_, _) { Nil },
+    error: fn(_, _) { Nil }
   )
 }
 

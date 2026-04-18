@@ -8,16 +8,12 @@ coverage:
 		_ = cover:start(), \
 		_ = cover:compile_beam_directory("build/dev/erlang/campaigner_app/ebin"), \
 		_ = eunit:test(campaigner_app_test), \
-		Modules = [campaigner_app, campaigner@vault, campaigner@web@views, campaigner@web@router, campaigner@services@dashboard_service, campaigner@infrastructure@simplifile_adapter, campaigner@infrastructure@fake_file_system], \
+		Modules = [campaigner@vault, campaigner@web@views, campaigner@web@router, campaigner@services@dashboard_service, campaigner@infrastructure@simplifile_adapter, campaigner@infrastructure@fake_file_system, campaigner@infrastructure@stdout_logger, campaigner@config, campaigner@config@defaults], \
 		{Cov, Uncov} = lists:foldl(fun(M, {AccC1, AccU1}) -> \
 			case cover:analyse(M, coverage, line) of \
 				{ok, Lines} -> \
-					lists:foldl(fun({{Mod, L}, {C, _}}, {AccC2, AccU2}) -> \
-						Exclude = (Mod =:= campaigner_app), \
-						case Exclude of \
-							true -> {AccC2, AccU2}; \
-							false -> {AccC2 + C, AccU2 + (1 - C)} \
-						end \
+					lists:foldl(fun({{_, _}, {C, _}}, {AC, AU}) -> \
+						{AC + C, AU + (1 - C)} \
 					end, {AccC1, AccU1}, Lines); \
 				_ -> {AccC1, AccU1} \
 			end \
@@ -35,16 +31,12 @@ check-coverage:
 		_ = cover:start(), \
 		_ = cover:compile_beam_directory("build/dev/erlang/campaigner_app/ebin"), \
 		_ = eunit:test(campaigner_app_test), \
-		Modules = [campaigner_app, campaigner@vault, campaigner@web@views, campaigner@web@router, campaigner@services@dashboard_service, campaigner@infrastructure@simplifile_adapter, campaigner@infrastructure@fake_file_system], \
+		Modules = [campaigner@vault, campaigner@web@views, campaigner@web@router, campaigner@services@dashboard_service, campaigner@infrastructure@simplifile_adapter, campaigner@infrastructure@fake_file_system, campaigner@infrastructure@stdout_logger, campaigner@config, campaigner@config@defaults], \
 		{Cov, Uncov} = lists:foldl(fun(M, {AccC1, AccU1}) -> \
 			case cover:analyse(M, coverage, line) of \
 				{ok, Lines} -> \
-					lists:foldl(fun({{Mod, L}, {C, _}}, {AccC2, AccU2}) -> \
-						Exclude = (Mod =:= campaigner_app), \
-						case Exclude of \
-							true -> {AccC2, AccU2}; \
-							false -> {AccC2 + C, AccU2 + (1 - C)} \
-						end \
+					lists:foldl(fun({{_, _}, {C, _}}, {AC, AU}) -> \
+						{AC + C, AU + (1 - C)} \
 					end, {AccC1, AccU1}, Lines); \
 				_ -> {AccC1, AccU1} \
 			end \
@@ -63,6 +55,6 @@ coverage-html:
 		_ = cover:start(), \
 		_ = cover:compile_beam_directory("build/dev/erlang/campaigner_app/ebin"), \
 		_ = eunit:test(campaigner_app_test), \
-		_ = [cover:analyse_to_file(M, [html]) || M <- [campaigner_app, campaigner@vault, campaigner@web@views, campaigner@web@router, campaigner@services@dashboard_service, campaigner@infrastructure@simplifile_adapter, campaigner@infrastructure@fake_file_system]], \
+		_ = [cover:analyse_to_file(M, [html]) || M <- [campaigner_app, campaigner@vault, campaigner@web@views, campaigner@web@router, campaigner@services@dashboard_service, campaigner@infrastructure@simplifile_adapter, campaigner@infrastructure@fake_file_system, campaigner@infrastructure@stdout_logger, campaigner@config, campaigner@config@defaults, campaigner@system]], \
 		io:format("~nHTML reports generated.~n"), \
 		init:stop().'

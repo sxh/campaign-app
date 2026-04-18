@@ -14,7 +14,7 @@ pub fn start() {
     Ok(cfg) -> {
       let ctx = vault.Context(fs: simplifile_adapter.real_fs(), logger: logger)
       
-      logger.info("Starting Campaigner App on http://localhost:8000")
+      logger.info("Starting Campaigner App on http://localhost:8000", [])
       
       let assert Ok(_) =
         mist.new(fn(req) {
@@ -31,7 +31,7 @@ pub fn start() {
         config.EnvironmentVariableMissing(name) -> "Environment variable missing: " <> name
         config.InvalidConfigPath(reason) -> "Invalid configuration: " <> reason
       }
-      logger.error("Failed to start: " <> msg)
+      logger.error("Failed to start: " <> msg, [])
       Nil
     }
   }

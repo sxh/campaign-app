@@ -1,10 +1,14 @@
 import gleam/list
 import gleam/string
 import gleam/result
+import gleam/int
 import gleam/erlang/process
 import campaigner/ports/file_system.{type FileSystem}
 import campaigner/ports/logger.{type Logger}
 import simplifile.{type FileError}
+
+pub type FileCount = Int
+pub type CharacterCount = Int
 
 pub opaque type VaultPath {
   VaultPath(path: String)
@@ -34,27 +38,27 @@ pub type VaultError {
 
 pub opaque type Stats {
   Stats(
-    total_files: Int, 
-    md_files: Int, 
-    image_files: Int, 
-    total_characters: Int,
+    total_files: FileCount, 
+    md_files: FileCount, 
+    image_files: FileCount, 
+    total_characters: CharacterCount,
     vault_path: VaultPath
   )
 }
 
 // Getters for Stats
-pub fn get_total_files(stats: Stats) -> Int { stats.total_files }
-pub fn get_md_files(stats: Stats) -> Int { stats.md_files }
-pub fn get_image_files(stats: Stats) -> Int { stats.image_files }
-pub fn get_total_characters(stats: Stats) -> Int { stats.total_characters }
+pub fn get_total_files(stats: Stats) -> FileCount { stats.total_files }
+pub fn get_md_files(stats: Stats) -> FileCount { stats.md_files }
+pub fn get_image_files(stats: Stats) -> FileCount { stats.image_files }
+pub fn get_total_characters(stats: Stats) -> CharacterCount { stats.total_characters }
 pub fn get_vault_path(stats: Stats) -> VaultPath { stats.vault_path }
 
 // Internal constructor for gather_stats
 fn new_stats(
-  total_files: Int, 
-  md_files: Int, 
-  image_files: Int, 
-  total_characters: Int,
+  total_files: FileCount, 
+  md_files: FileCount, 
+  image_files: FileCount, 
+  total_characters: CharacterCount,
   vault_path: VaultPath
 ) -> Stats {
   Stats(total_files, md_files, image_files, total_characters, vault_path)
@@ -72,7 +76,7 @@ pub fn gather_stats(path: VaultPath, ctx: Context) -> Result(Stats, VaultError) 
   let image_files = list.filter(files, is_image)
   let total_chars = count_characters(md_files, ctx.fs.read)
 
-  ctx.logger.info("Scanned vault at: " <> path_str)
+  ctx.logger.info("Scanned vault", [#("path", path_str), #("md_files", int.to_string(list.length(md_files)))])
 
   Ok(new_stats(
     list.length(files),
@@ -84,16 +88,34 @@ pub fn gather_stats(path: VaultPath, ctx: Context) -> Result(Stats, VaultError) 
 }
 
 fn count_characters(files: List(String), read_file: fn(String) -> Result(String, FileError)) -> Int {
+  // Process in chunks of 50 to avoid overwhelming the BEAM for huge vaults
+  sized_chunk(files, 50)
+  |> list.fold(0, fn(acc, chunk) {
+    acc + process_chunk(chunk, read_file)
+  })
+}
+
+pub fn sized_chunk(list: List(a), count: Int) -> List(List(a)) {
+  case list {
+    [] -> []
+    _ -> {
+      let #(first, rest) = list.split(list, count)
+      [first, ..sized_chunk(rest, count)]
+    }
+  }
+}
+
+fn process_chunk(chunk: List(String), read_file: fn(String) -> Result(String, FileError)) -> Int {
   let self = process.new_subject()
   
-  files
+  chunk
   |> list.each(fn(file) {
     process.spawn(fn() {
       process.send(self, get_file_char_count(file, read_file))
     })
   })
   
-  list.fold(files, 0, fn(acc, _) {
+  list.fold(chunk, 0, fn(acc, _) {
     case process.receive(self, 5000) {
       Ok(count) -> acc + count
       Error(_) -> acc

@@ -1,7 +1,10 @@
 import campaigner/vault
+import campaigner/config
+import campaigner/config/defaults
+import campaigner/infrastructure/stdout_logger
+import campaigner/services/dashboard_service as service
 import campaigner/web/views
 import campaigner/web/router
-import campaigner/services/dashboard_service as service
 import campaigner/ports/file_system
 import campaigner/infrastructure/simplifile_adapter
 import campaigner/infrastructure/fake_file_system
@@ -166,7 +169,7 @@ pub fn router_error_test() {
 }
 
 pub fn router_404_test() {
-  let assert Ok(path) = vault.vault_path_from_string("/tmp")
+  let path = factories.vault_path("/tmp")
   let ctx = factories.context()
   let res = router.router(["unknown"], path, ctx)
   res.status |> should.equal(404)
@@ -176,19 +179,20 @@ pub fn router_404_test() {
   body |> string.contains("<html>") |> should.be_true
 }
 
-pub fn parse_route_test() {
-  router.parse_route([]) |> should.equal(router.Dashboard)
-  router.parse_route(["any"]) |> should.equal(router.NotFound)
+pub fn config_load_test() {
+  let res = config.load()
+  res |> should.be_ok()
 }
 
-pub fn get_notes_message_test() {
-  service.get_notes_message(5) |> should.equal("You have some notes!")
-  service.get_notes_message(0) |> should.equal("No notes found.")
+pub fn defaults_test() {
+  defaults.vault_path |> string.is_empty() |> should.be_false()
 }
 
-pub fn get_chars_message_test() {
-  service.get_chars_message(5000) |> should.equal("Wow, that's a lot of writing!")
-  service.get_chars_message(500) |> should.equal("Keep writing!")
+pub fn logger_test() {
+  let logger = stdout_logger.new()
+  logger.info("test", [])
+  logger.error("test", [#("key", "val")])
+  True |> should.be_true()
 }
 
 pub fn is_markdown_test() {
@@ -205,8 +209,32 @@ pub fn is_image_test() {
 
 pub fn real_fs_test() {
   let fs = simplifile_adapter.real_fs()
-  // Just verify it returns the record with functions
   let _ = fs.get_files
   let _ = fs.read
   True |> should.be_true
+}
+
+pub fn sized_chunk_test() {
+  vault.sized_chunk([1, 2, 3, 4, 5], 2) |> should.equal([[1, 2], [3, 4], [5]])
+  vault.sized_chunk([1, 2], 5) |> should.equal([[1, 2]])
+  vault.sized_chunk([], 2) |> should.equal([])
+}
+
+pub fn service_render_error_test() {
+  let err = vault.VaultNotFound("/missing")
+  let html = service.render_error_page(err) |> element.to_string
+  html |> string.contains("Vault Not Found") |> should.be_true
+  
+  let err2 = vault.InvalidPath("oops")
+  let html2 = service.render_error_page(err2) |> element.to_string
+  html2 |> string.contains("Invalid Path") |> should.be_true
+
+  let err3 = vault.FileReadError("/path", simplifile.Eacces)
+  let html3 = service.render_error_page(err3) |> element.to_string
+  html3 |> string.contains("Read Error") |> should.be_true
+}
+
+pub fn service_render_404_test() {
+  let html = service.render_404_page() |> element.to_string
+  html |> string.contains("404 - Not Found") |> should.be_true
 }

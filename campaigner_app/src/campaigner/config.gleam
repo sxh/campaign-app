@@ -1,4 +1,6 @@
 import campaigner/vault
+import campaigner/config/defaults
+import gleam/dynamic.{type Dynamic}
 
 pub type Config {
   Config(vault_path: vault.VaultPath)
@@ -9,14 +11,25 @@ pub type ConfigError {
   InvalidConfigPath(reason: String)
 }
 
+@external(erlang, "erlang", "binary_to_list")
+fn binary_to_list(bin: String) -> Dynamic
+
 @external(erlang, "os", "getenv")
-fn get_env_ffi(name: String) -> Result(String, Nil)
+fn get_env_ffi(name: Dynamic) -> Dynamic
+
+@external(erlang, "erlang", "list_to_binary")
+fn list_to_binary(list: Dynamic) -> String
+
+@external(erlang, "erlang", "is_list")
+fn is_list(val: Dynamic) -> Bool
 
 pub fn load() -> Result(Config, ConfigError) {
   let name = "CAMPAIGNER_VAULT_PATH"
-  let path_str = case get_env_ffi(name) {
-    Ok(p) -> p
-    Error(_) -> "/Users/steve.hayes/Library/Mobile Documents/iCloud~md~obsidian/Documents/CthulhuVault/"
+  let res = get_env_ffi(binary_to_list(name))
+  
+  let path_str = case is_list(res) {
+    True -> list_to_binary(res)
+    False -> defaults.vault_path
   }
   
   case vault.vault_path_from_string(path_str) {

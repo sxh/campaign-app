@@ -24,8 +24,10 @@ The application must follow Hexagonal Architecture principles:
 - **Composition Root:** All wiring of Config, Context, and Adapters happens at the entry point (`system.gleam`).
 
 ## Advanced Engineering Standards
-- **Opaque Types:** Use opaque types for domain entities (`Stats`, `VaultPath`) to protect invariants. Provide explicit constructors and getters.
+- **Opaque Types & Value Objects:** Use opaque types for domain entities (`Stats`, `VaultPath`) and consider type aliases or value objects for domain-specific primitives to ensure type safety.
 - **Railway-Oriented Programming (ROP):** Prefer flat pipelines using `result.try` (`use <- result.try(...)`) over nested `case` expressions for error handling.
 - **Total Functions:** Functions should return `Result` types for all expected failure modes instead of using default "empty" values.
-- **Logic-Free Views:** Views should be "dumb" and focus purely on rendering. All data transformation and formatting should happen in the Service layer.
-- **BEAM Concurrency:** Leverage the BEAM for parallel I/O but always implement timeouts and fault-tolerant patterns.
+- **Logic-Free Views:** Views should be "dumb" and focus purely on rendering. All data transformation, formatting, and string mapping should happen in the Service layer.
+- **BEAM Concurrency & Performance:** Leverage the BEAM for parallel I/O with timeouts. For large-scale operations, use worker pools or chunking patterns to manage resource pressure.
+- **Test Segregation:** Maintain a clear distinction between fast Unit tests (using Fakes/Mocks) and slower Integration tests (using real infrastructure).
+- **Structured Observability:** The Logger port should ideally support structured data to facilitate production monitoring.
