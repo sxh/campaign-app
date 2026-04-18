@@ -8,18 +8,18 @@ coverage:
 		_ = cover:start(), \
 		_ = cover:compile_beam_directory("build/dev/erlang/campaigner_app/ebin"), \
 		_ = eunit:test(campaigner_app_test), \
-		Modules = [campaigner_app, campaigner@vault, campaigner@web@views, campaigner@web@router, campaigner@services@dashboard_service, campaigner@infrastructure@simplifile_adapter], \
-		{Cov, Uncov} = lists:foldl(fun(M, {AccC, AccU}) -> \
+		Modules = [campaigner_app, campaigner@vault, campaigner@web@views, campaigner@web@router, campaigner@services@dashboard_service, campaigner@infrastructure@simplifile_adapter, campaigner@infrastructure@fake_file_system], \
+		{Cov, Uncov} = lists:foldl(fun(M, {AccC1, AccU1}) -> \
 			case cover:analyse(M, coverage, line) of \
 				{ok, Lines} -> \
-					lists:foldl(fun({{Mod, L}, {C, _}}, {AC, AU}) -> \
+					lists:foldl(fun({{Mod, L}, {C, _}}, {AccC2, AccU2}) -> \
 						Exclude = (Mod =:= campaigner_app), \
 						case Exclude of \
-							true -> {AC, AU}; \
-							false -> {AC + C, AU + (1 - C)} \
+							true -> {AccC2, AccU2}; \
+							false -> {AccC2 + C, AccU2 + (1 - C)} \
 						end \
-					end, {AccC, AccU}, Lines); \
-				_ -> {AccC, AccU} \
+					end, {AccC1, AccU1}, Lines); \
+				_ -> {AccC1, AccU1} \
 			end \
 		end, {0, 0}, Modules), \
 		Percent = case (Cov + Uncov) of 0 -> 100; _ -> (Cov * 100) div (Cov + Uncov) end, \
@@ -35,18 +35,18 @@ check-coverage:
 		_ = cover:start(), \
 		_ = cover:compile_beam_directory("build/dev/erlang/campaigner_app/ebin"), \
 		_ = eunit:test(campaigner_app_test), \
-		Modules = [campaigner_app, campaigner@vault, campaigner@web@views, campaigner@web@router, campaigner@services@dashboard_service, campaigner@infrastructure@simplifile_adapter], \
-		{Cov, Uncov} = lists:foldl(fun(M, {AccC, AccU}) -> \
+		Modules = [campaigner_app, campaigner@vault, campaigner@web@views, campaigner@web@router, campaigner@services@dashboard_service, campaigner@infrastructure@simplifile_adapter, campaigner@infrastructure@fake_file_system], \
+		{Cov, Uncov} = lists:foldl(fun(M, {AccC1, AccU1}) -> \
 			case cover:analyse(M, coverage, line) of \
 				{ok, Lines} -> \
-					lists:foldl(fun({{Mod, L}, {C, _}}, {AC, AU}) -> \
+					lists:foldl(fun({{Mod, L}, {C, _}}, {AccC2, AccU2}) -> \
 						Exclude = (Mod =:= campaigner_app), \
 						case Exclude of \
-							true -> {AC, AU}; \
-							false -> {AC + C, AU + (1 - C)} \
+							true -> {AccC2, AccU2}; \
+							false -> {AccC2 + C, AccU2 + (1 - C)} \
 						end \
-					end, {AccC, AccU}, Lines); \
-				_ -> {AccC, AccU} \
+					end, {AccC1, AccU1}, Lines); \
+				_ -> {AccC1, AccU1} \
 			end \
 		end, {0, 0}, Modules), \
 		Percent = case (Cov + Uncov) of 0 -> 100; _ -> (Cov * 100) div (Cov + Uncov) end, \
@@ -63,6 +63,6 @@ coverage-html:
 		_ = cover:start(), \
 		_ = cover:compile_beam_directory("build/dev/erlang/campaigner_app/ebin"), \
 		_ = eunit:test(campaigner_app_test), \
-		_ = [cover:analyse_to_file(M, [html]) || M <- [campaigner_app, campaigner@vault, campaigner@web@views, campaigner@web@router, campaigner@services@dashboard_service, campaigner@infrastructure@simplifile_adapter]], \
+		_ = [cover:analyse_to_file(M, [html]) || M <- [campaigner_app, campaigner@vault, campaigner@web@views, campaigner@web@router, campaigner@services@dashboard_service, campaigner@infrastructure@simplifile_adapter, campaigner@infrastructure@fake_file_system]], \
 		io:format("~nHTML reports generated.~n"), \
 		init:stop().'

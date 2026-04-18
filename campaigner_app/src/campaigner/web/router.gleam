@@ -4,10 +4,22 @@ import campaigner/vault
 import campaigner/services/dashboard_service as service
 import lustre/element
 
-pub fn router(path: List(String), vault_path: vault.VaultPath, ctx: vault.Context) -> Response(BytesTree) {
+pub type Route {
+  Dashboard
+  NotFound
+}
+
+pub fn parse_route(path: List(String)) -> Route {
   case path {
-    [] -> serve_dashboard(vault_path, ctx)
-    _ -> serve_404()
+    [] -> Dashboard
+    _ -> NotFound
+  }
+}
+
+pub fn router(path: List(String), vault_path: vault.VaultPath, ctx: vault.Context) -> Response(BytesTree) {
+  case parse_route(path) {
+    Dashboard -> serve_dashboard(vault_path, ctx)
+    NotFound -> serve_404()
   }
 }
 

@@ -3,10 +3,12 @@ import campaigner/web/views
 import campaigner/web/router
 import campaigner/ports/file_system
 import campaigner/infrastructure/simplifile_adapter
+import campaigner/infrastructure/fake_file_system
 import campaigner_app
 import gleam/string
 import gleam/bytes_tree
 import gleam/bit_array
+import gleam/dict
 import gleam/http/request
 import gleeunit
 import gleeunit/should
@@ -62,7 +64,24 @@ pub fn gather_stats_mock_error_test() {
   let result = vault.gather_stats(path, ctx)
   let assert Ok(stats) = result
   stats.md_files |> should.equal(1)
-  stats.total_characters |> should.equal(0) // Error branch hit in get_file_char_count
+  stats.total_characters |> should.equal(0)
+}
+
+pub fn gather_stats_fake_test() {
+  let files = dict.from_list([
+    #("/vault/note1.md", "Hello"),
+    #("/vault/note2.md", "World"),
+    #("/vault/image.png", "binary")
+  ])
+  let fs = fake_file_system.new(files)
+  let ctx = vault.Context(fs: fs)
+  let assert Ok(path) = vault.vault_path_from_string("/vault")
+  
+  let result = vault.gather_stats(path, ctx)
+  let assert Ok(stats) = result
+  stats.total_files |> should.equal(3)
+  stats.md_files |> should.equal(2)
+  stats.total_characters |> should.equal(10)
 }
 
 pub fn gather_stats_error_test() {
@@ -155,7 +174,7 @@ pub fn router_error_test() {
   res.status |> should.equal(500)
   
   let assert Ok(body) = res.body |> bytes_tree.to_bit_array |> bit_array.to_string
-  body |> string.contains("Vault not found at: " <> test_path) |> should.be_true
+  body |> string.contains("Vault Not Found") |> should.be_true
   body |> string.contains("<html>") |> should.be_true
 }
 
@@ -166,8 +185,13 @@ pub fn router_404_test() {
   res.status |> should.equal(404)
   
   let assert Ok(body) = res.body |> bytes_tree.to_bit_array |> bit_array.to_string
-  body |> string.contains("Not Found") |> should.be_true
+  body |> string.contains("404 - Not Found") |> should.be_true
   body |> string.contains("<html>") |> should.be_true
+}
+
+pub fn parse_route_test() {
+  router.parse_route([]) |> should.equal(router.Dashboard)
+  router.parse_route(["any"]) |> should.equal(router.NotFound)
 }
 
 pub fn handle_connection_test() {

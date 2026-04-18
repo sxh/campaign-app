@@ -1,5 +1,5 @@
 import gleam/int
-import campaigner/vault.{type Stats}
+import campaigner/vault.{type Stats, type VaultError}
 import lustre/element.{type Element}
 import lustre/element/html
 import lustre/attribute
@@ -60,10 +60,27 @@ pub fn render_dashboard(stats: Stats) {
   ])
 }
 
-pub fn render_error(message: String) -> Element(msg) {
+pub fn render_error_page(error: VaultError) -> Element(msg) {
+  let #(title, message) = case error {
+    vault.VaultNotFound(path) -> 
+      #("Vault Not Found", "We couldn't find your Obsidian vault at: " <> path)
+    vault.FileReadError(path, _) -> 
+      #("Read Error", "There was an error reading a file in your vault: " <> path)
+    vault.InvalidPath(reason) -> 
+      #("Invalid Path", "The provided vault path is invalid: " <> reason)
+  }
+
   html.div([], [
-    html.h1([], [element.text("Error")]),
+    html.h1([], [element.text(title)]),
     html.p([], [element.text(message)]),
+    html.a([attribute.attribute("href", "/")], [element.text("Back to Dashboard")])
+  ])
+}
+
+pub fn render_404() -> Element(msg) {
+  html.div([], [
+    html.h1([], [element.text("404 - Not Found")]),
+    html.p([], [element.text("The page you are looking for does not exist.")]),
     html.a([attribute.attribute("href", "/")], [element.text("Back to Dashboard")])
   ])
 }

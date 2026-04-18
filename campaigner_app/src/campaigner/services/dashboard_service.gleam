@@ -21,16 +21,16 @@ pub fn render_dashboard_page(data: DashboardData) -> Element(msg) {
 }
 
 pub fn render_error_page(error: vault.VaultError) -> Element(msg) {
-  let msg = case error {
-    vault.VaultNotFound(p) -> "Vault not found at: " <> p
-    vault.FileReadError(p, _) -> "Error reading file: " <> p
-    vault.InvalidPath(reason) -> "Invalid path: " <> reason
+  let title = case error {
+    vault.VaultNotFound(_) -> "Vault Not Found"
+    vault.FileReadError(_, _) -> "Read Error"
+    vault.InvalidPath(_) -> "Invalid Path"
   }
-  views.render_error(msg)
-  |> views.layout("Error", _)
+  views.render_error_page(error)
+  |> views.layout(title, _)
 }
 
 pub fn render_404_page() -> Element(msg) {
-  views.render_error("Not Found")
-  |> views.layout("Not Found", _)
+  views.render_404()
+  |> views.layout("404 - Not Found", _)
 }

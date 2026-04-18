@@ -1,5 +1,6 @@
 import gleam/list
 import gleam/string
+import gleam/result
 import campaigner/ports/file_system.{type FileSystem}
 import simplifile.{type FileError}
 
@@ -41,31 +42,32 @@ pub type Stats {
 
 pub fn gather_stats(path: VaultPath, ctx: Context) -> Result(Stats, VaultError) {
   let path_str = vault_path_to_string(path)
-  case ctx.fs.get_files(path_str) {
-    Ok(files) -> {
-      let md_files = list.filter(files, is_markdown)
-      let image_files = list.filter(files, is_image)
-      let total_chars = count_characters(md_files, ctx.fs.read)
+  
+  use files <- result.try(
+    ctx.fs.get_files(path_str)
+    |> result.map_error(fn(_) { VaultNotFound(path_str) })
+  )
 
-      Ok(Stats(
-        total_files: list.length(files),
-        md_files: list.length(md_files),
-        image_files: list.length(image_files),
-        total_characters: total_chars,
-        vault_path: path,
-      ))
-    }
-    Error(_) -> Error(VaultNotFound(path_str))
-  }
+  let md_files = list.filter(files, is_markdown)
+  let image_files = list.filter(files, is_image)
+  let total_chars = count_characters(md_files, ctx.fs.read)
+
+  Ok(Stats(
+    total_files: list.length(files),
+    md_files: list.length(md_files),
+    image_files: list.length(image_files),
+    total_characters: total_chars,
+    vault_path: path,
+  ))
 }
 
-pub fn count_characters(files: List(String), read_file: fn(String) -> Result(String, FileError)) -> Int {
+fn count_characters(files: List(String), read_file: fn(String) -> Result(String, FileError)) -> Int {
   list.fold(files, 0, fn(acc, file) {
     acc + get_file_char_count(file, read_file)
   })
 }
 
-pub fn get_file_char_count(file: String, read_file: fn(String) -> Result(String, FileError)) -> Int {
+fn get_file_char_count(file: String, read_file: fn(String) -> Result(String, FileError)) -> Int {
   case read_file(file) {
     Ok(content) -> string.length(content)
     Error(_) -> 0
