@@ -13,6 +13,7 @@ import factories
 import gleam/bit_array
 import gleam/bytes_tree
 import gleam/dict
+import gleam/http.{Get, Post}
 import gleam/http/request
 import gleam/string
 import gleeunit
@@ -109,21 +110,14 @@ pub fn gather_stats_error_test() {
 }
 
 pub fn render_dashboard_test() {
-  let _stats = factories.stats()
-  let vm =
-    views.DashboardViewModel(
-      vault_path: "/test/vault",
-      total_files: "1",
-      md_files: "1",
-      total_characters: "0",
-      image_files: "0",
-      notes_message: "notes",
-      chars_message: "chars",
-    )
-  let html = views.render_dashboard(vm) |> element.to_string
+  let stats = factories.stats()
+  let html =
+    service.render_dashboard_page(service.DashboardData(stats))
+    |> element.to_string
 
   html |> string.contains("Campaigner Dashboard") |> should.be_true
-  html |> string.contains("Total Files: 1") |> should.be_true
+  html |> string.contains("Total Files") |> should.be_true
+  html |> string.contains("<html>") |> should.be_true
 }
 
 pub fn render_dashboard_empty_test() {
@@ -131,21 +125,14 @@ pub fn render_dashboard_empty_test() {
   let fs =
     fake_file_system.from_contents(dict.from_list([#("/empty/root", "")]))
   let ctx = factories.context_with_fs(fs)
-  let assert Ok(_stats) = vault.gather_stats(path, ctx)
+  let assert Ok(stats) = vault.gather_stats(path, ctx)
 
-  let vm =
-    views.DashboardViewModel(
-      vault_path: "/empty",
-      total_files: "1",
-      md_files: "0",
-      total_characters: "0",
-      image_files: "0",
-      notes_message: "No notes found.",
-      chars_message: "",
-    )
-  let html = views.render_dashboard(vm) |> element.to_string
-  html |> string.contains("Total Files: 1") |> should.be_true
+  let html =
+    service.render_dashboard_page(service.DashboardData(stats))
+    |> element.to_string
+  html |> string.contains("Total Files") |> should.be_true
   html |> string.contains("No notes found.") |> should.be_true
+  html |> string.contains("<html>") |> should.be_true
 }
 
 pub fn render_dashboard_full_test() {
@@ -385,7 +372,62 @@ pub fn router_chat_test() {
 
   let assert Ok(body) =
     res.body |> bytes_tree.to_bit_array |> bit_array.to_string
-  body
-  |> string.contains("Chat Facility: GET to view, POST to ask")
-  |> should.be_true
+  body |> string.contains("Chat with your Vault") |> should.be_true
+  body |> string.contains("<html>") |> should.be_true
+}
+
+pub fn render_chat_test() {
+  let vm =
+    views.ChatViewModel(
+      prompt: "Who is Strahd?",
+      response: "A vampire.",
+      error: "",
+    )
+  let html = views.render_chat(vm) |> element.to_string
+  html |> string.contains("Who is Strahd?") |> should.be_true
+  html |> string.contains("A vampire.") |> should.be_true
+}
+
+pub fn router_chat_post_test() {
+  let path = factories.vault_path("/vault")
+  let mock_chat =
+    chat_engine.ChatEngine(ask: fn(_, p) { Ok("Response to " <> p) })
+  let ctx =
+    vault.Context(
+      fs: fake_file_system.new(dict.new()),
+      logger: factories.logger_silent(),
+      chat: mock_chat,
+      timeout_ms: 5000,
+    )
+
+  let req =
+    request.new()
+    |> request.set_method(Post)
+    |> request.set_path("/chat")
+    |> request.set_query([#("prompt", "Hello")])
+
+  let res = router.router(req, path, ctx)
+  res.status |> should.equal(200)
+
+  let assert Ok(body) =
+    res.body |> bytes_tree.to_bit_array |> bit_array.to_string
+  body |> string.contains("Response to Hello") |> should.be_true
+}
+
+pub fn router_chat_post_empty_test() {
+  let path = factories.vault_path("/vault")
+  let ctx = factories.context()
+
+  let req =
+    request.new()
+    |> request.set_method(Post)
+    |> request.set_path("/chat")
+    |> request.set_query([#("prompt", "")])
+
+  let res = router.router(req, path, ctx)
+  res.status |> should.equal(200)
+
+  let assert Ok(body) =
+    res.body |> bytes_tree.to_bit_array |> bit_array.to_string
+  body |> string.contains("Please enter a question.") |> should.be_true
 }
