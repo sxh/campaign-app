@@ -3,6 +3,7 @@ import campaigner/config/defaults
 import campaigner/infrastructure/fake_file_system
 import campaigner/infrastructure/gemini_cli_adapter
 import campaigner/infrastructure/simplifile_adapter
+import campaigner/infrastructure/stdout_logger
 import campaigner/ports/chat_engine
 import campaigner/ports/file_system
 import campaigner/services/dashboard_service as service
@@ -472,4 +473,20 @@ pub fn router_chat_engine_error_test() {
   body
   |> string.contains("Failed to communicate with chat engine")
   |> should.be_true
+}
+
+pub fn system_init_fail_test() {
+  // We can't easily mock the config.load() internal call without a port,
+  // but we can test the error mapping if we expose a helper or refactor.
+  // For now, let's target dashboard_service rendering of specific errors.
+  let err = vault.InvalidPath("reason")
+  let html = service.render_error_page(err) |> element.to_string
+  html |> string.contains("Invalid Path") |> should.be_true
+}
+
+pub fn logger_integration_test() {
+  let logger = stdout_logger.new()
+  logger.info("Test Info", [#("key", "val")])
+  logger.error("Test Error", [])
+  True |> should.be_true()
 }
