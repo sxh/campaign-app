@@ -7,6 +7,7 @@ All development in this project must follow Extreme Programming practices. This 
 - **Refactoring:** Continuously improve the code's design without changing its behavior.
 - **Small Releases:** Deliver functional increments frequently.
 - **Small Steps:** Perform every change in the smallest possible increments. Commit after every successful step (e.g., one failing test, one passing test, one refactor).
+- **Make the Change Easy:** When making a change, first refactor the code to make the change as easy as possible (without changing behavior), then implement the easy change.
 
 ## Core Requirement: Test-Driven Development (TDD)
 You MUST follow the TDD lifecycle for every change:
