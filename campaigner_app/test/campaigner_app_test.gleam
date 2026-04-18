@@ -1,6 +1,8 @@
 import campaigner/vault
 import campaigner/web/views
 import campaigner/web/router
+import campaigner/ports/file_system
+import campaigner/infrastructure/simplifile_adapter
 import campaigner_app
 import gleam/string
 import gleam/bytes_tree
@@ -18,7 +20,7 @@ pub fn main() -> Nil {
 pub fn gather_stats_test() {
   let test_vault_path_str = "./test_vault"
   let assert Ok(test_vault_path) = vault.vault_path_from_string(test_vault_path_str)
-  let ctx = vault.Context(fs: vault.real_fs())
+  let ctx = vault.Context(fs: simplifile_adapter.real_fs())
   
   // Setup
   let _ = simplifile.create_directory_all(test_vault_path_str)
@@ -50,7 +52,7 @@ pub fn vault_path_validation_test() {
 }
 
 pub fn gather_stats_mock_error_test() {
-  let mock_fs = vault.FileSystem(
+  let mock_fs = file_system.FileSystem(
     get_files: fn(_) { Ok(["note1.md"]) },
     read: fn(_) { Error(simplifile.Enoent) }
   )
@@ -66,7 +68,7 @@ pub fn gather_stats_mock_error_test() {
 pub fn gather_stats_error_test() {
   let test_path = "./non_existent_vault"
   let assert Ok(path) = vault.vault_path_from_string(test_path)
-  let ctx = vault.Context(fs: vault.real_fs())
+  let ctx = vault.Context(fs: simplifile_adapter.real_fs())
   let result = vault.gather_stats(path, ctx)
   
   result |> should.equal(Error(vault.VaultNotFound(test_path)))
@@ -131,7 +133,7 @@ pub fn render_dashboard_low_chars_test() {
 pub fn router_root_test() {
   let test_vault_path_str = "./test_vault_router"
   let assert Ok(test_vault_path) = vault.vault_path_from_string(test_vault_path_str)
-  let ctx = vault.Context(fs: vault.real_fs())
+  let ctx = vault.Context(fs: simplifile_adapter.real_fs())
   let _ = simplifile.create_directory_all(test_vault_path_str)
   
   let res = router.router([], test_vault_path, ctx)
@@ -147,7 +149,7 @@ pub fn router_root_test() {
 pub fn router_error_test() {
   let test_path = "./non_existent_vault_router"
   let assert Ok(path) = vault.vault_path_from_string(test_path)
-  let ctx = vault.Context(fs: vault.real_fs())
+  let ctx = vault.Context(fs: simplifile_adapter.real_fs())
   
   let res = router.router([], path, ctx)
   res.status |> should.equal(500)
@@ -159,7 +161,7 @@ pub fn router_error_test() {
 
 pub fn router_404_test() {
   let assert Ok(path) = vault.vault_path_from_string("/tmp")
-  let ctx = vault.Context(fs: vault.real_fs())
+  let ctx = vault.Context(fs: simplifile_adapter.real_fs())
   let res = router.router(["unknown"], path, ctx)
   res.status |> should.equal(404)
   
@@ -171,7 +173,7 @@ pub fn router_404_test() {
 pub fn handle_connection_test() {
   let req = request.new() |> request.set_path("/unknown")
   let assert Ok(path) = vault.vault_path_from_string("/tmp")
-  let ctx = vault.Context(fs: vault.real_fs())
+  let ctx = vault.Context(fs: simplifile_adapter.real_fs())
   let res = campaigner_app.handle_connection(req, path, ctx)
   res.status |> should.equal(404)
 }
@@ -199,7 +201,7 @@ pub fn is_image_test() {
 }
 
 pub fn real_fs_test() {
-  let fs = vault.real_fs()
+  let fs = simplifile_adapter.real_fs()
   // Just verify it returns the record with functions
   let _ = fs.get_files
   let _ = fs.read

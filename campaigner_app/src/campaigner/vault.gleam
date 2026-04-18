@@ -1,20 +1,7 @@
 import gleam/list
 import gleam/string
+import campaigner/ports/file_system.{type FileSystem}
 import simplifile.{type FileError}
-
-pub type FileSystem {
-  FileSystem(
-    get_files: fn(String) -> Result(List(String), FileError),
-    read: fn(String) -> Result(String, FileError)
-  )
-}
-
-pub fn real_fs() -> FileSystem {
-  FileSystem(
-    get_files: simplifile.get_files,
-    read: simplifile.read
-  )
-}
 
 pub opaque type VaultPath {
   VaultPath(path: String)

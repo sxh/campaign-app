@@ -8,7 +8,7 @@ coverage:
 		_ = cover:start(), \
 		_ = cover:compile_beam_directory("build/dev/erlang/campaigner_app/ebin"), \
 		_ = eunit:test(campaigner_app_test), \
-		Modules = [campaigner_app, campaigner@vault, campaigner@web@views, campaigner@web@router, campaigner@config], \
+		Modules = [campaigner_app, campaigner@vault, campaigner@web@views, campaigner@web@router, campaigner@services@dashboard_service, campaigner@infrastructure@simplifile_adapter], \
 		{Cov, Uncov} = lists:foldl(fun(M, {AccC, AccU}) -> \
 			case cover:analyse(M, coverage, line) of \
 				{ok, Lines} -> \
@@ -35,7 +35,7 @@ check-coverage:
 		_ = cover:start(), \
 		_ = cover:compile_beam_directory("build/dev/erlang/campaigner_app/ebin"), \
 		_ = eunit:test(campaigner_app_test), \
-		Modules = [campaigner_app, campaigner@vault, campaigner@web@views, campaigner@web@router, campaigner@config], \
+		Modules = [campaigner_app, campaigner@vault, campaigner@web@views, campaigner@web@router, campaigner@services@dashboard_service, campaigner@infrastructure@simplifile_adapter], \
 		{Cov, Uncov} = lists:foldl(fun(M, {AccC, AccU}) -> \
 			case cover:analyse(M, coverage, line) of \
 				{ok, Lines} -> \
@@ -63,6 +63,6 @@ coverage-html:
 		_ = cover:start(), \
 		_ = cover:compile_beam_directory("build/dev/erlang/campaigner_app/ebin"), \
 		_ = eunit:test(campaigner_app_test), \
-		_ = [cover:analyse_to_file(M, [html]) || M <- [campaigner_app, campaigner@vault, campaigner@web@views, campaigner@web@router, campaigner@config]], \
+		_ = [cover:analyse_to_file(M, [html]) || M <- [campaigner_app, campaigner@vault, campaigner@web@views, campaigner@web@router, campaigner@services@dashboard_service, campaigner@infrastructure@simplifile_adapter]], \
 		io:format("~nHTML reports generated.~n"), \
 		init:stop().'

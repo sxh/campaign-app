@@ -5,10 +5,11 @@ import mist
 import campaigner/vault
 import campaigner/config
 import campaigner/web/router
+import campaigner/infrastructure/simplifile_adapter
 
 pub fn main() {
   let cfg = config.load()
-  let ctx = vault.Context(fs: vault.real_fs())
+  let ctx = vault.Context(fs: simplifile_adapter.real_fs())
   
   io.println("Starting Campaigner App on http://localhost:8000")
   

@@ -14,3 +14,10 @@ You MUST follow the TDD lifecycle for every change:
 3. **Refactor:** Clean up the code while ensuring tests stay green.
 
 No production code should be written without a corresponding failing test case.
+
+## Architecture: Hexagonal Architecture (Ports & Adapters)
+The application must follow Hexagonal Architecture principles:
+- **Core Domain:** Business logic and domain entities must be isolated from external technologies (databases, UI, frameworks).
+- **Ports:** Define interfaces (using Gleam records/functions) for communicating with the outside world.
+- **Adapters:** Implement ports for specific technologies (e.g., Mist for HTTP, Simplifile for File System).
+- **Dependency Rule:** Dependencies must point inward toward the Core Domain. The Core must not depend on any Adapters.
