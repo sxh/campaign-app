@@ -13,7 +13,7 @@ import factories
 import gleam/bit_array
 import gleam/bytes_tree
 import gleam/dict
-import gleam/http.{Get, Post}
+import gleam/http.{Post}
 import gleam/http/request
 import gleam/string
 import gleeunit

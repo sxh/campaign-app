@@ -1,10 +1,15 @@
-.PHONY: test coverage coverage-html check-coverage lint
+.PHONY: test coverage coverage-html check-coverage lint warnings
 
 test:
 	@gleam test
 
 lint:
 	@gleam format --check src test
+
+warnings:
+	@# gleam check returns 0 even with warnings, so we grep for the warning pattern
+	@gleam check 2>&1 | tee /tmp/gleam_check_output
+	@! grep -q "warning:" /tmp/gleam_check_output
 
 coverage:
 	@erl -pa build/dev/erlang/*/ebin -noshell -eval ' \
@@ -29,7 +34,7 @@ coverage:
 		io:format("  Percent:   ~p%~n", [Percent]), \
 		init:stop().'
 
-check-coverage: lint
+check-coverage: lint warnings
 	@erl -pa build/dev/erlang/*/ebin -noshell -eval ' \
 		_ = cover:start(), \
 		_ = cover:compile_beam_directory("build/dev/erlang/campaigner_app/ebin"), \

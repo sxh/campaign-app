@@ -1,5 +1,5 @@
 import campaigner/web/assets
-import lustre/attribute.{class, href, method, name, placeholder, src, type_}
+import lustre/attribute.{class, href, method, name, placeholder, type_}
 import lustre/element.{type Element}
 import lustre/element/html.{
   a, body, button, div, form, h1, h2, head, html, main, p, section, text,
