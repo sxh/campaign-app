@@ -44,7 +44,7 @@ pub fn serve_dashboard(vault_path: vault.VaultPath, ctx: vault.Context) -> Respo
   }
 }
 
-pub fn serve_chat(req: Request(t), vault_path: vault.VaultPath, ctx: vault.Context) -> Response(BytesTree) {
+pub fn serve_chat(_req: Request(t), _vault_path: vault.VaultPath, _ctx: vault.Context) -> Response(BytesTree) {
   // For now, returning a basic form response.
   // Real implementation will handle POST and service.ask_vault
   "Chat Facility: GET to view, POST to ask"
