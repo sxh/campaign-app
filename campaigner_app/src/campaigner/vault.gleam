@@ -27,7 +27,7 @@ pub fn vault_path_to_string(path: VaultPath) -> String {
 }
 
 pub type Context {
-  Context(fs: FileSystem, logger: Logger)
+  Context(fs: FileSystem, logger: Logger, timeout_ms: Int)
 }
 
 pub type VaultError {
@@ -75,7 +75,7 @@ pub fn gather_stats(path: VaultPath, ctx: Context) -> Result(Stats, VaultError) 
   let md_files = list.filter(files, is_markdown)
   let image_files = list.filter(files, is_image)
   
-  use total_chars <- result.try(count_characters(md_files, ctx.fs.read))
+  use total_chars <- result.try(count_characters(md_files, ctx.fs.read, ctx.timeout_ms))
 
   ctx.logger.info("Scanned vault", [#("path", path_str), #("md_files", int.to_string(list.length(md_files)))])
 
@@ -88,12 +88,12 @@ pub fn gather_stats(path: VaultPath, ctx: Context) -> Result(Stats, VaultError) 
   ))
 }
 
-fn count_characters(files: List(String), read_file: fn(String) -> Result(String, FileError)) -> Result(Int, VaultError) {
+fn count_characters(files: List(String), read_file: fn(String) -> Result(String, FileError), timeout: Int) -> Result(Int, VaultError) {
   // Process in chunks of 50 to avoid overwhelming the BEAM for huge vaults
   sized_chunk(files, 50)
   |> list.fold(Ok(0), fn(acc, chunk) {
     use current_total <- result.try(acc)
-    use chunk_total <- result.try(process_chunk(chunk, read_file))
+    use chunk_total <- result.try(process_chunk(chunk, read_file, timeout))
     Ok(current_total + chunk_total)
   })
 }
@@ -108,7 +108,7 @@ pub fn sized_chunk(list: List(a), count: Int) -> List(List(a)) {
   }
 }
 
-fn process_chunk(chunk: List(String), read_file: fn(String) -> Result(String, FileError)) -> Result(Int, VaultError) {
+fn process_chunk(chunk: List(String), read_file: fn(String) -> Result(String, FileError), timeout: Int) -> Result(Int, VaultError) {
   let self = process.new_subject()
   
   chunk
@@ -120,11 +120,10 @@ fn process_chunk(chunk: List(String), read_file: fn(String) -> Result(String, Fi
   
   list.fold(chunk, Ok(0), fn(acc, _) {
     use current_total <- result.try(acc)
-    // 5 second timeout per file read to prevent hanging
-    case process.receive(self, 5000) {
+    case process.receive(self, timeout) {
       Ok(#(_file, Ok(content))) -> Ok(current_total + string.length(content))
       Ok(#(file, Error(err))) -> Error(FileReadError(file, err))
-      Error(_) -> Ok(current_total) // Skip on timeout for now
+      Error(_) -> Ok(current_total) // Skip on timeout
     }
   })
 }

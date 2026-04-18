@@ -2,6 +2,7 @@ import campaigner/vault
 import campaigner/config
 import campaigner/config/defaults
 import campaigner/infrastructure/stdout_logger
+import campaigner/system
 import campaigner/services/dashboard_service as service
 import campaigner/web/views
 import campaigner/web/router
@@ -27,7 +28,8 @@ pub fn gather_stats_test() {
   let test_vault_path = factories.vault_path(test_vault_path_str)
   let ctx = vault.Context(
     fs: simplifile_adapter.real_fs(),
-    logger: factories.logger_silent()
+    logger: factories.logger_silent(),
+    timeout_ms: 5000
   )
   
   // Setup
@@ -167,7 +169,8 @@ pub fn router_root_test() {
   let test_vault_path = factories.vault_path(test_vault_path_str)
   let ctx = vault.Context(
     fs: simplifile_adapter.real_fs(),
-    logger: factories.logger_silent()
+    logger: factories.logger_silent(),
+    timeout_ms: 5000
   )
   let _ = simplifile.create_directory_all(test_vault_path_str)
   
@@ -303,4 +306,34 @@ pub fn router_file_read_error_test() {
   let assert Ok(body) = res.body |> bytes_tree.to_bit_array |> bit_array.to_string
   body |> string.contains("Read Error") |> should.be_true
   body |> string.contains("/vault/corrupt.md") |> should.be_true
+}
+
+pub fn config_error_string_test() {
+  config.string_from_vault_error(vault.VaultNotFound("/p")) |> should.equal("Path not found: /p")
+  config.string_from_vault_error(vault.FileReadError("/f", simplifile.Eacces)) |> should.equal("Read error: /f")
+  config.string_from_vault_error(vault.InvalidPath("oops")) |> should.equal("oops")
+}
+
+pub fn gather_stats_timeout_test() {
+  let path_str = "/vault"
+  let assert Ok(path) = vault.vault_path_from_string(path_str)
+  let files = dict.from_list([#("/vault/note.md", Ok("Some content"))])
+  let fs = fake_file_system.new(files)
+  
+  // Set timeout to 0 to force the Error(_) branch in process_chunk
+  let ctx = vault.Context(
+    fs: fs,
+    logger: factories.logger_silent(),
+    timeout_ms: 0
+  )
+  
+  let result = vault.gather_stats(path, ctx)
+  let assert Ok(stats) = result
+  // On timeout, it currently skips the file and returns total_characters: 0
+  vault.get_total_characters(stats) |> should.equal(0)
+}
+
+pub fn system_init_test() {
+  let logger = factories.logger_silent()
+  system.init(logger) |> should.be_ok()
 }

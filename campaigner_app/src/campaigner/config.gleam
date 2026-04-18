@@ -38,7 +38,7 @@ pub fn load() -> Result(Config, ConfigError) {
   }
 }
 
-fn string_from_vault_error(err: vault.VaultError) -> String {
+pub fn string_from_vault_error(err: vault.VaultError) -> String {
   case err {
     vault.VaultNotFound(p) -> "Path not found: " <> p
     vault.FileReadError(p, _) -> "Read error: " <> p

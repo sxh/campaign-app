@@ -4,16 +4,15 @@ import mist
 import campaigner/vault
 import campaigner/config
 import campaigner/web/router
+import campaigner/ports/logger.{type Logger}
 import campaigner/infrastructure/simplifile_adapter
 import campaigner/infrastructure/stdout_logger
 
 pub fn start() {
   let logger = stdout_logger.new()
   
-  case config.load() {
-    Ok(cfg) -> {
-      let ctx = vault.Context(fs: simplifile_adapter.real_fs(), logger: logger)
-      
+  case init(logger) {
+    Ok(#(cfg, ctx)) -> {
       logger.info("Starting Campaigner App on http://localhost:8000", [])
       
       let assert Ok(_) =
@@ -27,12 +26,28 @@ pub fn start() {
       Nil
     }
     Error(err) -> {
+      logger.error("Failed to start: " <> err, [])
+      Nil
+    }
+  }
+}
+
+pub fn init(logger: Logger) -> Result(#(config.Config, vault.Context), String) {
+  case config.load() {
+    Ok(cfg) -> {
+      let ctx = vault.Context(
+        fs: simplifile_adapter.real_fs(), 
+        logger: logger,
+        timeout_ms: 5000
+      )
+      Ok(#(cfg, ctx))
+    }
+    Error(err) -> {
       let msg = case err {
         config.EnvironmentVariableMissing(name) -> "Environment variable missing: " <> name
         config.InvalidConfigPath(reason) -> "Invalid configuration: " <> reason
       }
-      logger.error("Failed to start: " <> msg, [])
-      Nil
+      Error(msg)
     }
   }
 }

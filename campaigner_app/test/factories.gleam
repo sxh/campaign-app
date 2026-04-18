@@ -16,14 +16,16 @@ pub fn stats() -> vault.Stats {
 pub fn context() -> vault.Context {
   vault.Context(
     fs: fake_file_system.from_contents(dict.new()),
-    logger: logger_silent()
+    logger: logger_silent(),
+    timeout_ms: 5000
   )
 }
 
 pub fn context_with_fs(fs) -> vault.Context {
   vault.Context(
     fs: fs,
-    logger: logger_silent()
+    logger: logger_silent(),
+    timeout_ms: 5000
   )
 }
 
