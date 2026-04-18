@@ -278,3 +278,29 @@ pub fn gather_stats_file_read_error_test() {
   let result = vault.gather_stats(path, ctx)
   result |> should.equal(Error(vault.FileReadError("/vault/corrupt.md", simplifile.Eacces)))
 }
+
+pub fn fake_fs_inconsistent_test() {
+  let files = dict.from_list([#("/vault/exists.md", Ok("Content"))])
+  let fs = fake_file_system.new(files)
+  
+  // Directly calling the read function with a path NOT in the dictionary
+  // to trigger the Error branch in fake_file_system.read
+  fs.read("/vault/missing.md") |> should.equal(Error(simplifile.Enoent))
+}
+
+pub fn router_file_read_error_test() {
+  let path_str = "/vault"
+  let assert Ok(path) = vault.vault_path_from_string(path_str)
+  let files = dict.from_list([
+    #("/vault/corrupt.md", Error(simplifile.Eacces))
+  ])
+  let fs = fake_file_system.new(files)
+  let ctx = factories.context_with_fs(fs)
+  
+  let res = router.router([], path, ctx)
+  res.status |> should.equal(500)
+  
+  let assert Ok(body) = res.body |> bytes_tree.to_bit_array |> bit_array.to_string
+  body |> string.contains("Read Error") |> should.be_true
+  body |> string.contains("/vault/corrupt.md") |> should.be_true
+}
