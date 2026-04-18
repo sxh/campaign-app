@@ -68,9 +68,7 @@ pub fn gather_stats_mock_error_test() {
   let path = factories.vault_path("/path")
   
   let result = vault.gather_stats(path, ctx)
-  let assert Ok(stats) = result
-  vault.get_md_files(stats) |> should.equal(1)
-  vault.get_total_characters(stats) |> should.equal(0)
+  result |> should.equal(Error(vault.FileReadError("note1.md", simplifile.Enoent)))
 }
 
 pub fn gather_stats_fake_test() {
@@ -265,4 +263,18 @@ pub fn service_render_error_test() {
 pub fn service_render_404_test() {
   let html = service.render_404_page() |> element.to_string
   html |> string.contains("404 - Not Found") |> should.be_true
+}
+
+pub fn gather_stats_file_read_error_test() {
+  let path_str = "/vault"
+  let assert Ok(path) = vault.vault_path_from_string(path_str)
+  let files = dict.from_list([
+    #("/vault/note1.md", Ok("Good")),
+    #("/vault/corrupt.md", Error(simplifile.Eacces))
+  ])
+  let fs = fake_file_system.new(files)
+  let ctx = factories.context_with_fs(fs)
+  
+  let result = vault.gather_stats(path, ctx)
+  result |> should.equal(Error(vault.FileReadError("/vault/corrupt.md", simplifile.Eacces)))
 }

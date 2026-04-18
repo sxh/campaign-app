@@ -74,7 +74,8 @@ pub fn gather_stats(path: VaultPath, ctx: Context) -> Result(Stats, VaultError) 
 
   let md_files = list.filter(files, is_markdown)
   let image_files = list.filter(files, is_image)
-  let total_chars = count_characters(md_files, ctx.fs.read)
+  
+  use total_chars <- result.try(count_characters(md_files, ctx.fs.read))
 
   ctx.logger.info("Scanned vault", [#("path", path_str), #("md_files", int.to_string(list.length(md_files)))])
 
@@ -87,11 +88,13 @@ pub fn gather_stats(path: VaultPath, ctx: Context) -> Result(Stats, VaultError) 
   ))
 }
 
-fn count_characters(files: List(String), read_file: fn(String) -> Result(String, FileError)) -> Int {
+fn count_characters(files: List(String), read_file: fn(String) -> Result(String, FileError)) -> Result(Int, VaultError) {
   // Process in chunks of 50 to avoid overwhelming the BEAM for huge vaults
   sized_chunk(files, 50)
-  |> list.fold(0, fn(acc, chunk) {
-    acc + process_chunk(chunk, read_file)
+  |> list.fold(Ok(0), fn(acc, chunk) {
+    use current_total <- result.try(acc)
+    use chunk_total <- result.try(process_chunk(chunk, read_file))
+    Ok(current_total + chunk_total)
   })
 }
 
@@ -105,29 +108,25 @@ pub fn sized_chunk(list: List(a), count: Int) -> List(List(a)) {
   }
 }
 
-fn process_chunk(chunk: List(String), read_file: fn(String) -> Result(String, FileError)) -> Int {
+fn process_chunk(chunk: List(String), read_file: fn(String) -> Result(String, FileError)) -> Result(Int, VaultError) {
   let self = process.new_subject()
   
   chunk
   |> list.each(fn(file) {
     process.spawn(fn() {
-      process.send(self, get_file_char_count(file, read_file))
+      process.send(self, #(file, read_file(file)))
     })
   })
   
-  list.fold(chunk, 0, fn(acc, _) {
+  list.fold(chunk, Ok(0), fn(acc, _) {
+    use current_total <- result.try(acc)
+    // 5 second timeout per file read to prevent hanging
     case process.receive(self, 5000) {
-      Ok(count) -> acc + count
-      Error(_) -> acc
+      Ok(#(_file, Ok(content))) -> Ok(current_total + string.length(content))
+      Ok(#(file, Error(err))) -> Error(FileReadError(file, err))
+      Error(_) -> Ok(current_total) // Skip on timeout for now
     }
   })
-}
-
-fn get_file_char_count(file: String, read_file: fn(String) -> Result(String, FileError)) -> Int {
-  case read_file(file) {
-    Ok(content) -> string.length(content)
-    Error(_) -> 0
-  }
 }
 
 pub fn is_markdown(file: String) -> Bool {
