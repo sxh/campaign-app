@@ -1,6 +1,6 @@
+import lustre/attribute
 import lustre/element.{type Element}
 import lustre/element/html
-import lustre/attribute
 
 pub type DashboardViewModel {
   DashboardViewModel(
@@ -10,29 +10,26 @@ pub type DashboardViewModel {
     total_characters: String,
     image_files: String,
     notes_message: String,
-    chars_message: String
+    chars_message: String,
   )
 }
 
 pub type ErrorViewModel {
-  ErrorViewModel(
-    title: String,
-    message: String
-  )
+  ErrorViewModel(title: String, message: String)
 }
 
 pub fn layout(title: String, content: Element(msg)) -> Element(msg) {
   html.html([], [
     html.head([], [
       html.title([], title),
-      html.meta([
-        attribute.attribute("charset", "utf-8")
-      ]),
+      html.meta([attribute.attribute("charset", "utf-8")]),
       html.meta([
         attribute.attribute("name", "viewport"),
-        attribute.attribute("content", "width=device-width, initial-scale=1")
+        attribute.attribute("content", "width=device-width, initial-scale=1"),
       ]),
-      html.style([], "
+      html.style(
+        [],
+        "
         body {
           font-family: sans-serif;
           line-height: 1.5;
@@ -54,11 +51,10 @@ pub fn layout(title: String, content: Element(msg)) -> Element(msg) {
         .error { color: #e74c3c; }
         a { color: #3498db; text-decoration: none; }
         a:hover { text-decoration: underline; }
-      ")
+      ",
+      ),
     ]),
-    html.body([], [
-      content
-    ])
+    html.body([], [content]),
   ])
 }
 
@@ -70,30 +66,19 @@ pub fn render_dashboard(vm: DashboardViewModel) {
     html.ul([], [
       html.li([], [
         element.text("Vault Path: "),
-        html.code([], [element.text(vm.vault_path)])
+        html.code([], [element.text(vm.vault_path)]),
       ]),
-      html.li([], [
-        element.text("Total Files: "),
-        element.text(vm.total_files)
-      ]),
-      html.li([], [
-        element.text("Markdown Notes: "),
-        element.text(vm.md_files)
-      ]),
+      html.li([], [element.text("Total Files: "), element.text(vm.total_files)]),
+      html.li([], [element.text("Markdown Notes: "), element.text(vm.md_files)]),
       html.li([], [
         element.text("Total Characters in Notes: "),
-        element.text(vm.total_characters)
+        element.text(vm.total_characters),
       ]),
-      html.li([], [
-        element.text("Images: "),
-        element.text(vm.image_files)
-      ])
+      html.li([], [element.text("Images: "), element.text(vm.image_files)]),
     ]),
     html.p([], [element.text(vm.notes_message)]),
     html.p([], [element.text(vm.chars_message)]),
-    html.footer([], [
-      element.text("Built with Gleam, Lustre, and Mist.")
-    ])
+    html.footer([], [element.text("Built with Gleam, Lustre, and Mist.")]),
   ])
 }
 
@@ -101,7 +86,9 @@ pub fn render_error_page(vm: ErrorViewModel) -> Element(msg) {
   html.div([attribute.class("error")], [
     html.h1([], [element.text(vm.title)]),
     html.p([], [element.text(vm.message)]),
-    html.a([attribute.attribute("href", "/")], [element.text("Back to Dashboard")])
+    html.a([attribute.attribute("href", "/")], [
+      element.text("Back to Dashboard"),
+    ]),
   ])
 }
 
@@ -109,6 +96,8 @@ pub fn render_404() -> Element(msg) {
   html.div([], [
     html.h1([], [element.text("404 - Not Found")]),
     html.p([], [element.text("The page you are looking for does not exist.")]),
-    html.a([attribute.attribute("href", "/")], [element.text("Back to Dashboard")])
+    html.a([attribute.attribute("href", "/")], [
+      element.text("Back to Dashboard"),
+    ]),
   ])
 }

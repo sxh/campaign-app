@@ -1,7 +1,10 @@
-.PHONY: test coverage coverage-html check-coverage
+.PHONY: test coverage coverage-html check-coverage lint
 
 test:
 	@gleam test
+
+lint:
+	@gleam format --check src test
 
 coverage:
 	@erl -pa build/dev/erlang/*/ebin -noshell -eval ' \
@@ -26,7 +29,7 @@ coverage:
 		io:format("  Percent:   ~p%~n", [Percent]), \
 		init:stop().'
 
-check-coverage:
+check-coverage: lint
 	@erl -pa build/dev/erlang/*/ebin -noshell -eval ' \
 		_ = cover:start(), \
 		_ = cover:compile_beam_directory("build/dev/erlang/campaigner_app/ebin"), \

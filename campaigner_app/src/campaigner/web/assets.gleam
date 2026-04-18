@@ -2,7 +2,9 @@ import lustre/element.{type Element}
 import lustre/element/html
 
 pub fn global_styles() -> Element(msg) {
-  html.style([], "
+  html.style(
+    [],
+    "
     body {
       font-family: sans-serif;
       line-height: 1.5;
@@ -24,5 +26,6 @@ pub fn global_styles() -> Element(msg) {
     .error { color: #e74c3c; }
     a { color: #3498db; text-decoration: none; }
     a:hover { text-decoration: underline; }
-  ")
+  ",
+  )
 }

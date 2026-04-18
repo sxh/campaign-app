@@ -1,5 +1,5 @@
-import campaigner/vault
 import campaigner/config/defaults
+import campaigner/vault
 import gleam/dynamic.{type Dynamic}
 
 pub type Config {
@@ -33,13 +33,15 @@ pub fn load() -> Result(Config, ConfigError) {
   })
 }
 
-pub fn load_with_env(get_env: fn(String) -> Result(String, Nil)) -> Result(Config, ConfigError) {
+pub fn load_with_env(
+  get_env: fn(String) -> Result(String, Nil),
+) -> Result(Config, ConfigError) {
   let name = "CAMPAIGNER_VAULT_PATH"
   let path_str = case get_env(name) {
     Ok(p) -> p
     Error(_) -> defaults.vault_path
   }
-  
+
   case vault.vault_path_from_string(path_str) {
     Ok(vault_path) -> Ok(Config(vault_path: vault_path))
     Error(err) -> Error(InvalidConfigPath(string_from_vault_error(err)))

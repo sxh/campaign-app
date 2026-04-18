@@ -3,7 +3,5 @@ pub type ChatError {
 }
 
 pub type ChatEngine {
-  ChatEngine(
-    ask: fn(String, String) -> Result(String, ChatError)
-  )
+  ChatEngine(ask: fn(String, String) -> Result(String, ChatError))
 }

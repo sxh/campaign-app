@@ -19,7 +19,7 @@ pub fn new(files: Dict(String, Result(String, FileError))) -> FileSystem {
         Ok(res) -> res
         Error(_) -> Error(Enoent)
       }
-    }
+    },
   )
 }
 
