@@ -1,10 +1,9 @@
-import campaigner_app
 import campaigner/vault
 import campaigner/web/views
+import campaigner/web/router
 import gleam/string
 import gleam/bytes_tree
 import gleam/bit_array
-import gleam/http/request
 import gleeunit
 import gleeunit/should
 import lustre/element
@@ -27,9 +26,10 @@ pub fn gather_stats_test() {
   let _ = simplifile.write(test_vault_path_str <> "/other.txt", "ignore me")
   
   // Execute
-  let stats = vault.gather_stats(test_vault_path, ctx)
+  let result = vault.gather_stats(test_vault_path, ctx)
   
   // Assert
+  let assert Ok(stats) = result
   stats.total_files |> should.equal(4)
   stats.md_files |> should.equal(2)
   stats.image_files |> should.equal(1)
@@ -48,16 +48,19 @@ pub fn gather_stats_mock_error_test() {
   let ctx = vault.Context(fs: mock_fs)
   let path = vault.vault_path_from_string("/path")
   
-  let stats = vault.gather_stats(path, ctx)
+  let result = vault.gather_stats(path, ctx)
+  let assert Ok(stats) = result
   stats.md_files |> should.equal(1)
-  stats.total_characters |> should.equal(0) // Error branch hit
+  stats.total_characters |> should.equal(0) // Error branch hit in get_file_char_count
 }
 
 pub fn gather_stats_error_test() {
-  let path = vault.vault_path_from_string("./non_existent_vault")
+  let test_path = "./non_existent_vault"
+  let path = vault.vault_path_from_string(test_path)
   let ctx = vault.Context(fs: vault.real_fs())
-  let stats = vault.gather_stats(path, ctx)
-  stats.total_files |> should.equal(0)
+  let result = vault.gather_stats(path, ctx)
+  
+  result |> should.equal(Error(vault.VaultNotFound(test_path)))
 }
 
 pub fn render_dashboard_test() {
@@ -122,7 +125,7 @@ pub fn router_root_test() {
   let ctx = vault.Context(fs: vault.real_fs())
   let _ = simplifile.create_directory_all(test_vault_path_str)
   
-  let res = campaigner_app.router([], test_vault_path, ctx)
+  let res = router.router([], test_vault_path, ctx)
   res.status |> should.equal(200)
   
   let assert Ok(body) = res.body |> bytes_tree.to_bit_array |> bit_array.to_string
@@ -131,22 +134,26 @@ pub fn router_root_test() {
   let _ = simplifile.delete(test_vault_path_str)
 }
 
+pub fn router_error_test() {
+  let test_path = "./non_existent_vault_router"
+  let path = vault.vault_path_from_string(test_path)
+  let ctx = vault.Context(fs: vault.real_fs())
+  
+  let res = router.router([], path, ctx)
+  res.status |> should.equal(500)
+  
+  let assert Ok(body) = res.body |> bytes_tree.to_bit_array |> bit_array.to_string
+  body |> string.contains("Vault not found at: " <> test_path) |> should.be_true
+}
+
 pub fn router_404_test() {
   let path = vault.vault_path_from_string("/tmp")
   let ctx = vault.Context(fs: vault.real_fs())
-  let res = campaigner_app.router(["unknown"], path, ctx)
+  let res = router.router(["unknown"], path, ctx)
   res.status |> should.equal(404)
   
   let assert Ok(body) = res.body |> bytes_tree.to_bit_array |> bit_array.to_string
   body |> should.equal("Not Found")
-}
-
-pub fn handle_connection_test() {
-  let req = request.new()
-  let path = vault.vault_path_from_string("/tmp")
-  let ctx = vault.Context(fs: vault.real_fs())
-  let res = campaigner_app.handle_connection(req, path, ctx)
-  res.status |> should.equal(200)
 }
 
 pub fn get_notes_message_test() {

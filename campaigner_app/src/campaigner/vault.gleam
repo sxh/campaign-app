@@ -32,6 +32,11 @@ pub type Context {
   Context(fs: FileSystem)
 }
 
+pub type VaultError {
+  VaultNotFound(path: String)
+  FileReadError(path: String, error: FileError)
+}
+
 pub type Stats {
   Stats(
     total_files: Int, 
@@ -42,23 +47,26 @@ pub type Stats {
   )
 }
 
-pub fn gather_stats(path: VaultPath, ctx: Context) -> Stats {
+pub fn gather_stats(path: VaultPath, ctx: Context) -> Result(Stats, VaultError) {
   let path_str = vault_path_to_string(path)
   case ctx.fs.get_files(path_str) {
     Ok(files) -> {
       let md_files = list.filter(files, is_markdown)
       let image_files = list.filter(files, is_image)
+      
+      // For now, we'll continue even if some files fail to read, 
+      // but gather_stats itself now returns a Result for the directory access.
       let total_chars = count_characters(md_files, ctx.fs.read)
 
-      Stats(
+      Ok(Stats(
         total_files: list.length(files),
         md_files: list.length(md_files),
         image_files: list.length(image_files),
         total_characters: total_chars,
         vault_path: path,
-      )
+      ))
     }
-    Error(_) -> Stats(0, 0, 0, 0, path)
+    Error(_) -> Error(VaultNotFound(path_str))
   }
 }
 
