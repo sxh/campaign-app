@@ -1,7 +1,26 @@
 import gleam/int
 import campaigner/vault.{type Stats}
-import lustre/element
+import lustre/element.{type Element}
 import lustre/element/html
+import lustre/attribute
+
+pub fn layout(title: String, content: Element(msg)) -> Element(msg) {
+  html.html([], [
+    html.head([], [
+      html.title([], title),
+      html.meta([
+        attribute.attribute("charset", "utf-8")
+      ]),
+      html.meta([
+        attribute.attribute("name", "viewport"),
+        attribute.attribute("content", "width=device-width, initial-scale=1")
+      ])
+    ]),
+    html.body([], [
+      content
+    ])
+  ])
+}
 
 pub fn render_dashboard(stats: Stats) {
   let notes_msg = get_notes_message(stats.md_files)
@@ -38,6 +57,14 @@ pub fn render_dashboard(stats: Stats) {
     html.footer([], [
       element.text("Built with Gleam, Lustre, and Mist.")
     ])
+  ])
+}
+
+pub fn render_error(message: String) -> Element(msg) {
+  html.div([], [
+    html.h1([], [element.text("Error")]),
+    html.p([], [element.text(message)]),
+    html.a([attribute.attribute("href", "/")], [element.text("Back to Dashboard")])
   ])
 }
 

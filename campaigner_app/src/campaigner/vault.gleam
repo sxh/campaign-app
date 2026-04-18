@@ -20,8 +20,12 @@ pub opaque type VaultPath {
   VaultPath(path: String)
 }
 
-pub fn vault_path_from_string(path: String) -> VaultPath {
-  VaultPath(path)
+pub fn vault_path_from_string(path: String) -> Result(VaultPath, VaultError) {
+  let trimmed = string.trim(path)
+  case string.is_empty(trimmed) {
+    True -> Error(InvalidPath("Path cannot be empty"))
+    False -> Ok(VaultPath(trimmed))
+  }
 }
 
 pub fn vault_path_to_string(path: VaultPath) -> String {
@@ -35,6 +39,7 @@ pub type Context {
 pub type VaultError {
   VaultNotFound(path: String)
   FileReadError(path: String, error: FileError)
+  InvalidPath(reason: String)
 }
 
 pub type Stats {
@@ -53,9 +58,6 @@ pub fn gather_stats(path: VaultPath, ctx: Context) -> Result(Stats, VaultError) 
     Ok(files) -> {
       let md_files = list.filter(files, is_markdown)
       let image_files = list.filter(files, is_image)
-      
-      // For now, we'll continue even if some files fail to read, 
-      // but gather_stats itself now returns a Result for the directory access.
       let total_chars = count_characters(md_files, ctx.fs.read)
 
       Ok(Stats(

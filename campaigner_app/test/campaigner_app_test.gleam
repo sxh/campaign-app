@@ -1,9 +1,11 @@
 import campaigner/vault
 import campaigner/web/views
 import campaigner/web/router
+import campaigner_app
 import gleam/string
 import gleam/bytes_tree
 import gleam/bit_array
+import gleam/http/request
 import gleeunit
 import gleeunit/should
 import lustre/element
@@ -15,7 +17,7 @@ pub fn main() -> Nil {
 
 pub fn gather_stats_test() {
   let test_vault_path_str = "./test_vault"
-  let test_vault_path = vault.vault_path_from_string(test_vault_path_str)
+  let assert Ok(test_vault_path) = vault.vault_path_from_string(test_vault_path_str)
   let ctx = vault.Context(fs: vault.real_fs())
   
   // Setup
@@ -40,13 +42,20 @@ pub fn gather_stats_test() {
   let _ = simplifile.delete(test_vault_path_str)
 }
 
+pub fn vault_path_validation_test() {
+  vault.vault_path_from_string("") |> should.equal(Error(vault.InvalidPath("Path cannot be empty")))
+  vault.vault_path_from_string("   ") |> should.equal(Error(vault.InvalidPath("Path cannot be empty")))
+  let assert Ok(path) = vault.vault_path_from_string("/valid/path")
+  vault.vault_path_to_string(path) |> should.equal("/valid/path")
+}
+
 pub fn gather_stats_mock_error_test() {
   let mock_fs = vault.FileSystem(
     get_files: fn(_) { Ok(["note1.md"]) },
     read: fn(_) { Error(simplifile.Enoent) }
   )
   let ctx = vault.Context(fs: mock_fs)
-  let path = vault.vault_path_from_string("/path")
+  let assert Ok(path) = vault.vault_path_from_string("/path")
   
   let result = vault.gather_stats(path, ctx)
   let assert Ok(stats) = result
@@ -56,7 +65,7 @@ pub fn gather_stats_mock_error_test() {
 
 pub fn gather_stats_error_test() {
   let test_path = "./non_existent_vault"
-  let path = vault.vault_path_from_string(test_path)
+  let assert Ok(path) = vault.vault_path_from_string(test_path)
   let ctx = vault.Context(fs: vault.real_fs())
   let result = vault.gather_stats(path, ctx)
   
@@ -64,7 +73,7 @@ pub fn gather_stats_error_test() {
 }
 
 pub fn render_dashboard_test() {
-  let path = vault.vault_path_from_string("/test/vault")
+  let assert Ok(path) = vault.vault_path_from_string("/test/vault")
   let stats = vault.Stats(
     total_files: 10,
     md_files: 5,
@@ -83,7 +92,7 @@ pub fn render_dashboard_test() {
 }
 
 pub fn render_dashboard_empty_test() {
-  let path = vault.vault_path_from_string("")
+  let assert Ok(path) = vault.vault_path_from_string("/empty")
   let stats = vault.Stats(0, 0, 0, 0, path)
   let html = views.render_dashboard(stats) |> element.to_string
   html |> string.contains("Total Files: 0") |> should.be_true
@@ -91,7 +100,7 @@ pub fn render_dashboard_empty_test() {
 }
 
 pub fn render_dashboard_full_test() {
-  let path = vault.vault_path_from_string("/path")
+  let assert Ok(path) = vault.vault_path_from_string("/path")
   let stats = vault.Stats(
     total_files: 100, 
     md_files: 50, 
@@ -106,7 +115,7 @@ pub fn render_dashboard_full_test() {
 }
 
 pub fn render_dashboard_low_chars_test() {
-  let path = vault.vault_path_from_string("/path")
+  let assert Ok(path) = vault.vault_path_from_string("/path")
   let stats = vault.Stats(
     total_files: 1, 
     md_files: 1, 
@@ -121,7 +130,7 @@ pub fn render_dashboard_low_chars_test() {
 
 pub fn router_root_test() {
   let test_vault_path_str = "./test_vault_router"
-  let test_vault_path = vault.vault_path_from_string(test_vault_path_str)
+  let assert Ok(test_vault_path) = vault.vault_path_from_string(test_vault_path_str)
   let ctx = vault.Context(fs: vault.real_fs())
   let _ = simplifile.create_directory_all(test_vault_path_str)
   
@@ -130,13 +139,14 @@ pub fn router_root_test() {
   
   let assert Ok(body) = res.body |> bytes_tree.to_bit_array |> bit_array.to_string
   body |> string.contains("Campaigner Dashboard") |> should.be_true
+  body |> string.contains("<html>") |> should.be_true
   
   let _ = simplifile.delete(test_vault_path_str)
 }
 
 pub fn router_error_test() {
   let test_path = "./non_existent_vault_router"
-  let path = vault.vault_path_from_string(test_path)
+  let assert Ok(path) = vault.vault_path_from_string(test_path)
   let ctx = vault.Context(fs: vault.real_fs())
   
   let res = router.router([], path, ctx)
@@ -144,16 +154,26 @@ pub fn router_error_test() {
   
   let assert Ok(body) = res.body |> bytes_tree.to_bit_array |> bit_array.to_string
   body |> string.contains("Vault not found at: " <> test_path) |> should.be_true
+  body |> string.contains("<html>") |> should.be_true
 }
 
 pub fn router_404_test() {
-  let path = vault.vault_path_from_string("/tmp")
+  let assert Ok(path) = vault.vault_path_from_string("/tmp")
   let ctx = vault.Context(fs: vault.real_fs())
   let res = router.router(["unknown"], path, ctx)
   res.status |> should.equal(404)
   
   let assert Ok(body) = res.body |> bytes_tree.to_bit_array |> bit_array.to_string
-  body |> should.equal("Not Found")
+  body |> string.contains("Not Found") |> should.be_true
+  body |> string.contains("<html>") |> should.be_true
+}
+
+pub fn handle_connection_test() {
+  let req = request.new() |> request.set_path("/unknown")
+  let assert Ok(path) = vault.vault_path_from_string("/tmp")
+  let ctx = vault.Context(fs: vault.real_fs())
+  let res = campaigner_app.handle_connection(req, path, ctx)
+  res.status |> should.equal(404)
 }
 
 pub fn get_notes_message_test() {

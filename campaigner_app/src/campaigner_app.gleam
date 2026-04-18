@@ -13,14 +13,16 @@ pub fn main() {
   io.println("Starting Campaigner App on http://localhost:8000")
   
   let assert Ok(_) =
-    mist.new(fn(req) {
-      router.router(request.path_segments(req), cfg.vault_path, ctx)
-      |> response.map(mist.Bytes)
-    })
+    mist.new(handle_connection(_, cfg.vault_path, ctx))
     |> mist.port(8000)
     |> mist.start
   
   process_sleep_forever()
+}
+
+pub fn handle_connection(req: request.Request(t), vault_path: vault.VaultPath, ctx: vault.Context) -> response.Response(mist.ResponseData) {
+  router.router(request.path_segments(req), vault_path, ctx)
+  |> response.map(mist.Bytes)
 }
 
 @external(erlang, "timer", "sleep")

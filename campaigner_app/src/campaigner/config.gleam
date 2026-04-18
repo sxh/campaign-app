@@ -13,5 +13,6 @@ pub fn load() -> Config {
     Ok(p) -> p
     Error(_) -> "/Users/steve.hayes/Library/Mobile Documents/iCloud~md~obsidian/Documents/CthulhuVault/"
   }
-  Config(vault_path: vault.vault_path_from_string(path_str))
+  let assert Ok(vault_path) = vault.vault_path_from_string(path_str)
+  Config(vault_path: vault_path)
 }
