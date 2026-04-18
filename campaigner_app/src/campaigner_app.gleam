@@ -1,5 +1,4 @@
 import gleam/io
-import gleam/list
 import gleam/http/response.{type Response}
 import gleam/http/request
 import gleam/bytes_tree.{type BytesTree}
