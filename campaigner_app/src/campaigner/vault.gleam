@@ -1,6 +1,7 @@
 import gleam/list
 import gleam/string
 import gleam/result
+import gleam/erlang/process
 import campaigner/ports/file_system.{type FileSystem}
 import simplifile.{type FileError}
 
@@ -62,8 +63,17 @@ pub fn gather_stats(path: VaultPath, ctx: Context) -> Result(Stats, VaultError) 
 }
 
 fn count_characters(files: List(String), read_file: fn(String) -> Result(String, FileError)) -> Int {
-  list.fold(files, 0, fn(acc, file) {
-    acc + get_file_char_count(file, read_file)
+  let self = process.new_subject()
+  
+  files
+  |> list.each(fn(file) {
+    process.spawn(fn() {
+      process.send(self, get_file_char_count(file, read_file))
+    })
+  })
+  
+  list.fold(files, 0, fn(acc, _) {
+    acc + process.receive_forever(self)
   })
 }
 
