@@ -17,6 +17,15 @@ You MUST follow the TDD lifecycle for every change:
 
 No production code should be written without a corresponding failing test case.
 
+## Definition of Done (Quality Gates)
+Work is NOT considered complete until it passes all the following quality gates:
+- **Zero Lint Errors:** `gleam format --check` must pass.
+- **Zero Warnings:** `gleam check` must return no warnings.
+- **High Logic Coverage:** Project logic coverage must be at least **98%**.
+- **Green Tests:** All unit and integration tests must pass.
+
+These criteria are enforced by the pre-commit hook and the project `Makefile`.
+
 ## Architecture: Hexagonal Architecture (Ports & Adapters)
 The application must follow Hexagonal Architecture principles:
 - **Core Domain:** Business logic and domain entities must be isolated from external technologies. Keep domain logic pure and independent.
