@@ -1,9 +1,25 @@
-import gleam/int
-import campaigner/vault.{type Stats, type VaultError}
-import campaigner/web/assets
 import lustre/element.{type Element}
 import lustre/element/html
 import lustre/attribute
+
+pub type DashboardViewModel {
+  DashboardViewModel(
+    vault_path: String,
+    total_files: String,
+    md_files: String,
+    total_characters: String,
+    image_files: String,
+    notes_message: String,
+    chars_message: String
+  )
+}
+
+pub type ErrorViewModel {
+  ErrorViewModel(
+    title: String,
+    message: String
+  )
+}
 
 pub fn layout(title: String, content: Element(msg)) -> Element(msg) {
   html.html([], [
@@ -16,7 +32,29 @@ pub fn layout(title: String, content: Element(msg)) -> Element(msg) {
         attribute.attribute("name", "viewport"),
         attribute.attribute("content", "width=device-width, initial-scale=1")
       ]),
-      assets.global_styles()
+      html.style([], "
+        body {
+          font-family: sans-serif;
+          line-height: 1.5;
+          color: #333;
+          max-width: 800px;
+          margin: 0 auto;
+          padding: 2rem;
+          background-color: #f4f4f9;
+        }
+        h1 { color: #2c3e50; }
+        code {
+          background-color: #eee;
+          padding: 0.2rem 0.4rem;
+          border-radius: 3px;
+        }
+        ul { list-style-type: none; padding: 0; }
+        li { margin-bottom: 0.5rem; padding: 0.5rem; background: #fff; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        footer { margin-top: 2rem; font-size: 0.8rem; color: #777; border-top: 1px solid #ddd; padding-top: 1rem; }
+        .error { color: #e74c3c; }
+        a { color: #3498db; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+      ")
     ]),
     html.body([], [
       content
@@ -24,10 +62,7 @@ pub fn layout(title: String, content: Element(msg)) -> Element(msg) {
   ])
 }
 
-pub fn render_dashboard(stats: Stats) {
-  let notes_msg = get_notes_message(vault.get_md_files(stats))
-  let char_msg = get_chars_message(vault.get_total_characters(stats))
-
+pub fn render_dashboard(vm: DashboardViewModel) {
   html.div([], [
     html.h1([], [element.text("Campaigner Dashboard")]),
     html.p([], [element.text("Hello World from Lustre!")]),
@@ -35,46 +70,37 @@ pub fn render_dashboard(stats: Stats) {
     html.ul([], [
       html.li([], [
         element.text("Vault Path: "),
-        html.code([], [element.text(vault.vault_path_to_string(vault.get_vault_path(stats)))])
+        html.code([], [element.text(vm.vault_path)])
       ]),
       html.li([], [
         element.text("Total Files: "),
-        element.text(int.to_string(vault.get_total_files(stats)))
+        element.text(vm.total_files)
       ]),
       html.li([], [
         element.text("Markdown Notes: "),
-        element.text(int.to_string(vault.get_md_files(stats)))
+        element.text(vm.md_files)
       ]),
       html.li([], [
         element.text("Total Characters in Notes: "),
-        element.text(int.to_string(stats |> vault.get_total_characters))
+        element.text(vm.total_characters)
       ]),
       html.li([], [
         element.text("Images: "),
-        element.text(int.to_string(vault.get_image_files(stats)))
+        element.text(vm.image_files)
       ])
     ]),
-    html.p([], [element.text(notes_msg)]),
-    html.p([], [element.text(char_msg)]),
+    html.p([], [element.text(vm.notes_message)]),
+    html.p([], [element.text(vm.chars_message)]),
     html.footer([], [
       element.text("Built with Gleam, Lustre, and Mist.")
     ])
   ])
 }
 
-pub fn render_error_page(error: VaultError) -> Element(msg) {
-  let #(title, message) = case error {
-    vault.VaultNotFound(path) -> 
-      #("Vault Not Found", "We couldn't find your Obsidian vault at: " <> path)
-    vault.FileReadError(path, _) -> 
-      #("Read Error", "There was an error reading a file in your vault: " <> path)
-    vault.InvalidPath(reason) -> 
-      #("Invalid Path", "The provided vault path is invalid: " <> reason)
-  }
-
+pub fn render_error_page(vm: ErrorViewModel) -> Element(msg) {
   html.div([attribute.class("error")], [
-    html.h1([], [element.text(title)]),
-    html.p([], [element.text(message)]),
+    html.h1([], [element.text(vm.title)]),
+    html.p([], [element.text(vm.message)]),
     html.a([attribute.attribute("href", "/")], [element.text("Back to Dashboard")])
   ])
 }
@@ -85,18 +111,4 @@ pub fn render_404() -> Element(msg) {
     html.p([], [element.text("The page you are looking for does not exist.")]),
     html.a([attribute.attribute("href", "/")], [element.text("Back to Dashboard")])
   ])
-}
-
-pub fn get_notes_message(count: Int) -> String {
-  case count > 0 {
-    True -> "You have some notes!"
-    False -> "No notes found."
-  }
-}
-
-pub fn get_chars_message(count: Int) -> String {
-  case count > 1000 {
-    True -> "Wow, that's a lot of writing!"
-    False -> "Keep writing!"
-  }
 }

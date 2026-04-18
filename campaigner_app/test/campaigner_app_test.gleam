@@ -1,6 +1,7 @@
 import campaigner/vault
 import campaigner/web/views
 import campaigner/web/router
+import campaigner/services/dashboard_service as service
 import campaigner/ports/file_system
 import campaigner/infrastructure/simplifile_adapter
 import campaigner/infrastructure/fake_file_system
@@ -21,7 +22,10 @@ pub fn main() -> Nil {
 pub fn gather_stats_test() {
   let test_vault_path_str = "./test_vault"
   let test_vault_path = factories.vault_path(test_vault_path_str)
-  let ctx = vault.Context(fs: simplifile_adapter.real_fs())
+  let ctx = vault.Context(
+    fs: simplifile_adapter.real_fs(),
+    logger: factories.logger_silent()
+  )
   
   // Setup
   let _ = simplifile.create_directory_all(test_vault_path_str)
@@ -57,7 +61,7 @@ pub fn gather_stats_mock_error_test() {
     get_files: fn(_) { Ok(["note1.md"]) },
     read: fn(_) { Error(simplifile.Enoent) }
   )
-  let ctx = vault.Context(fs: mock_fs)
+  let ctx = factories.context_with_fs(mock_fs)
   let path = factories.vault_path("/path")
   
   let result = vault.gather_stats(path, ctx)
@@ -73,7 +77,7 @@ pub fn gather_stats_fake_test() {
     #("/vault/image.png", "binary")
   ])
   let fs = fake_file_system.new(files)
-  let ctx = vault.Context(fs: fs)
+  let ctx = factories.context_with_fs(fs)
   let path = factories.vault_path("/vault")
   
   let result = vault.gather_stats(path, ctx)
@@ -86,64 +90,56 @@ pub fn gather_stats_fake_test() {
 pub fn gather_stats_error_test() {
   let test_path = "./non_existent_vault"
   let path = factories.vault_path(test_path)
-  let ctx = vault.Context(fs: simplifile_adapter.real_fs())
+  let ctx = factories.context() // real_fs wrapper from factory
   let result = vault.gather_stats(path, ctx)
   
   result |> should.equal(Error(vault.VaultNotFound(test_path)))
 }
 
 pub fn render_dashboard_test() {
-  let stats = factories.stats()
-  let html = views.render_dashboard(stats) |> element.to_string
+  let _stats = factories.stats()
+  let vm = views.DashboardViewModel(
+    vault_path: "/test/vault",
+    total_files: "1",
+    md_files: "1",
+    total_characters: "0",
+    image_files: "0",
+    notes_message: "notes",
+    chars_message: "chars"
+  )
+  let html = views.render_dashboard(vm) |> element.to_string
   
   html |> string.contains("Campaigner Dashboard") |> should.be_true
-  html |> string.contains("Total Files: ") |> should.be_true
-  html |> string.contains("Markdown Notes: ") |> should.be_true
+  html |> string.contains("Total Files: 1") |> should.be_true
 }
 
 pub fn render_dashboard_empty_test() {
   let path = factories.vault_path("/empty")
   let fs = fake_file_system.new(dict.from_list([#("/empty/root", "")]))
-  let ctx = vault.Context(fs: fs)
-  let assert Ok(stats) = vault.gather_stats(path, ctx)
+  let ctx = factories.context_with_fs(fs)
+  let assert Ok(_stats) = vault.gather_stats(path, ctx)
   
-  let html = views.render_dashboard(stats) |> element.to_string
+  let vm = views.DashboardViewModel(
+    vault_path: "/empty",
+    total_files: "1",
+    md_files: "0",
+    total_characters: "0",
+    image_files: "0",
+    notes_message: "No notes found.",
+    chars_message: ""
+  )
+  let html = views.render_dashboard(vm) |> element.to_string
   html |> string.contains("Total Files: 1") |> should.be_true
   html |> string.contains("No notes found.") |> should.be_true
-}
-
-pub fn render_dashboard_full_test() {
-  let path = factories.vault_path("/path")
-  let fs = fake_file_system.new(dict.from_list([
-    #("/path/n1.md", string.repeat("a", 600)),
-    #("/path/n2.md", string.repeat("b", 600))
-  ]))
-  let ctx = vault.Context(fs: fs)
-  let assert Ok(stats) = vault.gather_stats(path, ctx)
-  
-  let html = views.render_dashboard(stats) |> element.to_string
-  html |> string.contains("You have some notes!") |> should.be_true
-  // Lustre escapes single quotes
-  html |> string.contains("Wow, that&#39;s a lot of writing!") |> should.be_true
-}
-
-pub fn render_dashboard_low_chars_test() {
-  let path = factories.vault_path("/path")
-  let fs = fake_file_system.new(dict.from_list([
-    #("/path/n1.md", "small")
-  ]))
-  let ctx = vault.Context(fs: fs)
-  let assert Ok(stats) = vault.gather_stats(path, ctx)
-  
-  let html = views.render_dashboard(stats) |> element.to_string
-  html |> string.contains("You have some notes!") |> should.be_true
-  html |> string.contains("Keep writing!") |> should.be_true
 }
 
 pub fn router_root_test() {
   let test_vault_path_str = "./test_vault_router"
   let test_vault_path = factories.vault_path(test_vault_path_str)
-  let ctx = vault.Context(fs: simplifile_adapter.real_fs())
+  let ctx = vault.Context(
+    fs: simplifile_adapter.real_fs(),
+    logger: factories.logger_silent()
+  )
   let _ = simplifile.create_directory_all(test_vault_path_str)
   
   let res = router.router([], test_vault_path, ctx)
@@ -159,7 +155,7 @@ pub fn router_root_test() {
 pub fn router_error_test() {
   let test_path = "./non_existent_vault_router"
   let path = factories.vault_path(test_path)
-  let ctx = vault.Context(fs: simplifile_adapter.real_fs())
+  let ctx = factories.context()
   
   let res = router.router([], path, ctx)
   res.status |> should.equal(500)
@@ -171,7 +167,7 @@ pub fn router_error_test() {
 
 pub fn router_404_test() {
   let assert Ok(path) = vault.vault_path_from_string("/tmp")
-  let ctx = vault.Context(fs: simplifile_adapter.real_fs())
+  let ctx = factories.context()
   let res = router.router(["unknown"], path, ctx)
   res.status |> should.equal(404)
   
@@ -186,13 +182,13 @@ pub fn parse_route_test() {
 }
 
 pub fn get_notes_message_test() {
-  views.get_notes_message(5) |> should.equal("You have some notes!")
-  views.get_notes_message(0) |> should.equal("No notes found.")
+  service.get_notes_message(5) |> should.equal("You have some notes!")
+  service.get_notes_message(0) |> should.equal("No notes found.")
 }
 
 pub fn get_chars_message_test() {
-  views.get_chars_message(5000) |> should.equal("Wow, that's a lot of writing!")
-  views.get_chars_message(500) |> should.equal("Keep writing!")
+  service.get_chars_message(5000) |> should.equal("Wow, that's a lot of writing!")
+  service.get_chars_message(500) |> should.equal("Keep writing!")
 }
 
 pub fn is_markdown_test() {

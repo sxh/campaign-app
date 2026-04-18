@@ -3,6 +3,7 @@ import gleam/string
 import gleam/result
 import gleam/erlang/process
 import campaigner/ports/file_system.{type FileSystem}
+import campaigner/ports/logger.{type Logger}
 import simplifile.{type FileError}
 
 pub opaque type VaultPath {
@@ -22,7 +23,7 @@ pub fn vault_path_to_string(path: VaultPath) -> String {
 }
 
 pub type Context {
-  Context(fs: FileSystem)
+  Context(fs: FileSystem, logger: Logger)
 }
 
 pub type VaultError {
@@ -71,6 +72,8 @@ pub fn gather_stats(path: VaultPath, ctx: Context) -> Result(Stats, VaultError) 
   let image_files = list.filter(files, is_image)
   let total_chars = count_characters(md_files, ctx.fs.read)
 
+  ctx.logger.info("Scanned vault at: " <> path_str)
+
   Ok(new_stats(
     list.length(files),
     list.length(md_files),
@@ -91,7 +94,6 @@ fn count_characters(files: List(String), read_file: fn(String) -> Result(String,
   })
   
   list.fold(files, 0, fn(acc, _) {
-    // 5 second timeout per file read to prevent hanging
     case process.receive(self, 5000) {
       Ok(count) -> acc + count
       Error(_) -> acc

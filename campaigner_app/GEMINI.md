@@ -17,7 +17,15 @@ No production code should be written without a corresponding failing test case.
 
 ## Architecture: Hexagonal Architecture (Ports & Adapters)
 The application must follow Hexagonal Architecture principles:
-- **Core Domain:** Business logic and domain entities must be isolated from external technologies (databases, UI, frameworks).
-- **Ports:** Define interfaces (using Gleam records/functions) for communicating with the outside world.
-- **Adapters:** Implement ports for specific technologies (e.g., Mist for HTTP, Simplifile for File System).
-- **Dependency Rule:** Dependencies must point inward toward the Core Domain. The Core must not depend on any Adapters.
+- **Core Domain:** Business logic and domain entities must be isolated from external technologies. Keep domain logic pure and independent.
+- **Ports:** Define interfaces (using Gleam records/functions) for ALL external communication (I/O, Logging, Database).
+- **Adapters:** Implement ports for specific technologies.
+- **Dependency Rule:** Dependencies MUST point inward. Infrastructure and Web layers depend on Services and Domain; the reverse is NEVER allowed.
+- **Composition Root:** All wiring of Config, Context, and Adapters happens at the entry point (`system.gleam`).
+
+## Advanced Engineering Standards
+- **Opaque Types:** Use opaque types for domain entities (`Stats`, `VaultPath`) to protect invariants. Provide explicit constructors and getters.
+- **Railway-Oriented Programming (ROP):** Prefer flat pipelines using `result.try` (`use <- result.try(...)`) over nested `case` expressions for error handling.
+- **Total Functions:** Functions should return `Result` types for all expected failure modes instead of using default "empty" values.
+- **Logic-Free Views:** Views should be "dumb" and focus purely on rendering. All data transformation and formatting should happen in the Service layer.
+- **BEAM Concurrency:** Leverage the BEAM for parallel I/O but always implement timeouts and fault-tolerant patterns.
