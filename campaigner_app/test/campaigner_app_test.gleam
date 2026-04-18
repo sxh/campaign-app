@@ -443,3 +443,33 @@ pub fn gemini_adapter_test() {
     Error(chat_engine.EngineError("Gemini CLI returned no output")),
   )
 }
+
+pub fn router_chat_engine_error_test() {
+  let path = factories.vault_path("/vault")
+  let mock_chat =
+    chat_engine.ChatEngine(ask: fn(_, _) {
+      Error(chat_engine.EngineError("Simulated Failure"))
+    })
+  let ctx =
+    vault.Context(
+      fs: fake_file_system.new(dict.new()),
+      logger: factories.logger_silent(),
+      chat: mock_chat,
+      timeout_ms: 5000,
+    )
+
+  let req =
+    request.new()
+    |> request.set_method(Post)
+    |> request.set_path("/chat")
+    |> request.set_query([#("prompt", "Hello")])
+
+  let res = router.router(req, path, ctx)
+  res.status |> should.equal(200)
+
+  let assert Ok(body) =
+    res.body |> bytes_tree.to_bit_array |> bit_array.to_string
+  body
+  |> string.contains("Failed to communicate with chat engine")
+  |> should.be_true
+}
