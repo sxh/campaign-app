@@ -2,3 +2,5 @@
 *.ez
 /build
 erl_crash.dump
+_build
+*.html

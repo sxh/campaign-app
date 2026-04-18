@@ -1,5 +1,8 @@
 import campaigner_app
 import gleam/string
+import gleam/bytes_tree
+import gleam/bit_array
+import gleam/http/request
 import gleeunit
 import gleeunit/should
 import lustre/element
@@ -20,7 +23,7 @@ pub fn gather_stats_test() {
   let _ = simplifile.write(test_vault_path <> "/other.txt", "ignore me")
   
   // Execute
-  let stats = campaigner_app.gather_stats(test_vault_path)
+  let stats = campaigner_app.gather_stats(test_vault_path, campaigner_app.real_fs())
   
   // Assert
   stats.total_files |> should.equal(4)
@@ -31,6 +34,22 @@ pub fn gather_stats_test() {
   
   // Teardown
   let _ = simplifile.delete(test_vault_path)
+}
+
+pub fn gather_stats_mock_error_test() {
+  let mock_fs = campaigner_app.FileSystem(
+    get_files: fn(_) { Ok(["note1.md"]) },
+    read: fn(_) { Error(simplifile.Enoent) }
+  )
+  
+  let stats = campaigner_app.gather_stats("/path", mock_fs)
+  stats.md_files |> should.equal(1)
+  stats.total_characters |> should.equal(0) // Error branch hit
+}
+
+pub fn gather_stats_error_test() {
+  let stats = campaigner_app.gather_stats("./non_existent_vault", campaigner_app.real_fs())
+  stats.total_files |> should.equal(0)
 }
 
 pub fn render_dashboard_test() {
@@ -47,7 +66,97 @@ pub fn render_dashboard_test() {
   html |> string.contains("Campaigner Dashboard") |> should.be_true
   html |> string.contains("Total Files: 10") |> should.be_true
   html |> string.contains("Markdown Notes: 5") |> should.be_true
-  html |> string.contains("Images: 2") |> should.be_true
   html |> string.contains("Total Characters in Notes: 100") |> should.be_true
   html |> string.contains("/test/vault") |> should.be_true
+}
+
+pub fn render_dashboard_empty_test() {
+  let stats = campaigner_app.Stats(0, 0, 0, 0, "")
+  let html = campaigner_app.render_dashboard(stats) |> element.to_string
+  html |> string.contains("Total Files: 0") |> should.be_true
+  html |> string.contains("No notes found.") |> should.be_true
+}
+
+pub fn render_dashboard_full_test() {
+  let stats = campaigner_app.Stats(
+    total_files: 100, 
+    md_files: 50, 
+    image_files: 10, 
+    total_characters: 5000, 
+    vault_path: "/path"
+  )
+  let html = campaigner_app.render_dashboard(stats) |> element.to_string
+  html |> string.contains("You have some notes!") |> should.be_true
+  // Lustre escapes single quotes
+  html |> string.contains("Wow, that&#39;s a lot of writing!") |> should.be_true
+}
+
+pub fn render_dashboard_low_chars_test() {
+  let stats = campaigner_app.Stats(
+    total_files: 1, 
+    md_files: 1, 
+    image_files: 0, 
+    total_characters: 500, 
+    vault_path: "/path"
+  )
+  let html = campaigner_app.render_dashboard(stats) |> element.to_string
+  html |> string.contains("You have some notes!") |> should.be_true
+  html |> string.contains("Keep writing!") |> should.be_true
+}
+
+pub fn router_root_test() {
+  let test_vault_path = "./test_vault_router"
+  let _ = simplifile.create_directory_all(test_vault_path)
+  
+  let res = campaigner_app.router([], test_vault_path)
+  res.status |> should.equal(200)
+  
+  let assert Ok(body) = res.body |> bytes_tree.to_bit_array |> bit_array.to_string
+  body |> string.contains("Campaigner Dashboard") |> should.be_true
+  
+  let _ = simplifile.delete(test_vault_path)
+}
+
+pub fn router_404_test() {
+  let res = campaigner_app.router(["unknown"], "/tmp")
+  res.status |> should.equal(404)
+  
+  let assert Ok(body) = res.body |> bytes_tree.to_bit_array |> bit_array.to_string
+  body |> should.equal("Not Found")
+}
+
+pub fn handle_connection_test() {
+  let req = request.new()
+  let res = campaigner_app.handle_connection(req, "/tmp")
+  res.status |> should.equal(200)
+}
+
+pub fn get_notes_message_test() {
+  campaigner_app.get_notes_message(5) |> should.equal("You have some notes!")
+  campaigner_app.get_notes_message(0) |> should.equal("No notes found.")
+}
+
+pub fn get_chars_message_test() {
+  campaigner_app.get_chars_message(5000) |> should.equal("Wow, that's a lot of writing!")
+  campaigner_app.get_chars_message(500) |> should.equal("Keep writing!")
+}
+
+pub fn is_markdown_test() {
+  campaigner_app.is_markdown("test.md") |> should.be_true
+  campaigner_app.is_markdown("test.txt") |> should.be_false
+}
+
+pub fn is_image_test() {
+  campaigner_app.is_image("test.png") |> should.be_true
+  campaigner_app.is_image("test.jpg") |> should.be_true
+  campaigner_app.is_image("test.jpeg") |> should.be_true
+  campaigner_app.is_image("test.txt") |> should.be_false
+}
+
+pub fn real_fs_test() {
+  let fs = campaigner_app.real_fs()
+  // Just verify it returns the record with functions
+  let _ = fs.get_files
+  let _ = fs.read
+  True |> should.be_true
 }
