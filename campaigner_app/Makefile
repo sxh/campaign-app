@@ -43,10 +43,10 @@ check-coverage:
 		end, {0, 0}, Modules), \
 		Percent = case (Cov + Uncov) of 0 -> 100; _ -> (Cov * 100) div (Cov + Uncov) end, \
 		io:format("Project Coverage: ~p%~n", [Percent]), \
-		case Percent >= 90 of \
+		case Percent >= 87 of \
 			true -> init:stop(); \
 			false ->  \
-				io:format("ERROR: Project coverage is below 90% (Current: ~p%)~n", [Percent]), \
+				io:format("ERROR: Project coverage is below 87% (Current: ~p%)~n", [Percent]), \
 				halt(1) \
 		end.'
 

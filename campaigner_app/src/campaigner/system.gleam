@@ -1,4 +1,3 @@
-import gleam/http/request
 import gleam/http/response
 import mist
 import campaigner/vault
@@ -18,7 +17,7 @@ pub fn start() {
       
       let assert Ok(_) =
         mist.new(fn(req) {
-          router.router(request.path_segments(req), cfg.vault_path, ctx)
+          router.router(req, cfg.vault_path, ctx)
           |> response.map(mist.Bytes)
         })
         |> mist.port(8000)

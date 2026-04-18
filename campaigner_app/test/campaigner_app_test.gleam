@@ -10,6 +10,7 @@ import campaigner/ports/file_system
 import campaigner/infrastructure/simplifile_adapter
 import campaigner/infrastructure/fake_file_system
 import factories
+import gleam/http/request
 import gleam/string
 import gleam/bytes_tree
 import gleam/bit_array
@@ -176,7 +177,8 @@ pub fn router_root_test() {
   )
   let _ = simplifile.create_directory_all(test_vault_path_str)
   
-  let res = router.router([], test_vault_path, ctx)
+  let req = request.new()
+  let res = router.router(req, test_vault_path, ctx)
   res.status |> should.equal(200)
   
   let assert Ok(body) = res.body |> bytes_tree.to_bit_array |> bit_array.to_string
@@ -191,7 +193,8 @@ pub fn router_error_test() {
   let path = factories.vault_path(test_path)
   let ctx = factories.context()
   
-  let res = router.router([], path, ctx)
+  let req = request.new()
+  let res = router.router(req, path, ctx)
   res.status |> should.equal(500)
   
   let assert Ok(body) = res.body |> bytes_tree.to_bit_array |> bit_array.to_string
@@ -202,7 +205,8 @@ pub fn router_error_test() {
 pub fn router_404_test() {
   let assert Ok(path) = vault.vault_path_from_string("/tmp")
   let ctx = factories.context()
-  let res = router.router(["unknown"], path, ctx)
+  let req = request.new() |> request.set_path("/unknown")
+  let res = router.router(req, path, ctx)
   res.status |> should.equal(404)
   
   let assert Ok(body) = res.body |> bytes_tree.to_bit_array |> bit_array.to_string
@@ -212,6 +216,7 @@ pub fn router_404_test() {
 
 pub fn parse_route_test() {
   router.parse_route([]) |> should.equal(router.Dashboard)
+  router.parse_route(["chat"]) |> should.equal(router.Chat)
   router.parse_route(["any"]) |> should.equal(router.NotFound)
 }
 
@@ -274,8 +279,10 @@ pub fn router_file_read_error_test() {
   ])
   let fs = fake_file_system.new(files)
   let ctx = factories.context_with_fs(fs)
+
   
-  let res = router.router([], path, ctx)
+  let req = request.new()
+  let res = router.router(req, path, ctx)
   res.status |> should.equal(500)
   
   let assert Ok(body) = res.body |> bytes_tree.to_bit_array |> bit_array.to_string
@@ -350,9 +357,10 @@ pub fn ask_vault_test() {
 pub fn router_chat_test() {
   let path = factories.vault_path("/vault")
   let ctx = factories.context()
-  let res = router.router(["chat"], path, ctx)
+  let req = request.new() |> request.set_path("/chat")
+  let res = router.router(req, path, ctx)
   res.status |> should.equal(200)
   
   let assert Ok(body) = res.body |> bytes_tree.to_bit_array |> bit_array.to_string
-  body |> string.contains("Chat Facility Coming Soon") |> should.be_true
+  body |> string.contains("Chat Facility: GET to view, POST to ask") |> should.be_true
 }
