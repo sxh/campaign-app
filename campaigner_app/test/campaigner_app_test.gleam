@@ -15,7 +15,7 @@ import factories
 import gleam/bit_array
 import gleam/bytes_tree
 import gleam/dict
-import gleam/http.{Get, Post}
+import gleam/http.{Get, Post, Put}
 import gleam/http/request
 import gleam/string
 import gleeunit
@@ -556,4 +556,21 @@ pub fn router_chat_get_test() {
   let assert Ok(body) =
     res.body |> bytes_tree.to_bit_array |> bit_array.to_string
   body |> string.contains("Chat with your Vault") |> should.be_true
+}
+
+pub fn router_chat_put_test() {
+  let path = factories.vault_path("/vault")
+  let ctx = factories.context()
+  // Use Put (which is not handled in serve_chat specifically, should hit _ fallback)
+  let req =
+    request.new() |> request.set_method(Put) |> request.set_path("/chat")
+  let res = router.router(req, path, ctx)
+  res.status |> should.equal(404)
+}
+
+pub fn gemini_shell_executor_test() {
+  // Test with a standard shell command that works on all systems (echo)
+  let res = gemini_cli_adapter.shell_executor("echo 'hello'")
+  // Erlang os:cmd includes trailing newline
+  string.contains(res, "hello") |> should.be_true()
 }

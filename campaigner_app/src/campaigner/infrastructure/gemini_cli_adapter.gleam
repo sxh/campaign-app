@@ -11,7 +11,11 @@ fn os_cmd(cmd: Dynamic) -> Dynamic
 fn list_to_binary(list: Dynamic) -> String
 
 pub fn new() -> ChatEngine {
-  new_with_executor(fn(cmd) { os_cmd(binary_to_list(cmd)) |> list_to_binary })
+  new_with_executor(shell_executor)
+}
+
+pub fn shell_executor(cmd: String) -> String {
+  os_cmd(binary_to_list(cmd)) |> list_to_binary
 }
 
 pub fn new_with_executor(executor: fn(String) -> String) -> ChatEngine {
