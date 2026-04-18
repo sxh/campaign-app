@@ -17,9 +17,13 @@ pub fn prepare_dashboard_data(vault_path: vault.VaultPath, ctx: vault.Context) -
 }
 
 pub fn render_dashboard_page(data: DashboardData) -> Element(msg) {
-  let stats = data.stats
-  
-  let vm = views.DashboardViewModel(
+  to_dashboard_view_model(data.stats)
+  |> views.render_dashboard
+  |> views.layout("Campaigner Dashboard", _)
+}
+
+pub fn to_dashboard_view_model(stats: vault.Stats) -> views.DashboardViewModel {
+  views.DashboardViewModel(
     vault_path: vault.vault_path_to_string(vault.get_vault_path(stats)),
     total_files: int.to_string(vault.get_total_files(stats)),
     md_files: int.to_string(vault.get_md_files(stats)),
@@ -28,9 +32,6 @@ pub fn render_dashboard_page(data: DashboardData) -> Element(msg) {
     notes_message: get_notes_message(vault.get_md_files(stats)),
     chars_message: get_chars_message(vault.get_total_characters(stats))
   )
-
-  views.render_dashboard(vm)
-  |> views.layout("Campaigner Dashboard", _)
 }
 
 pub fn render_error_page(error: vault.VaultError) -> Element(msg) {

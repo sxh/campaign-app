@@ -7,7 +7,7 @@ pub fn stats() -> vault.Stats {
   let path_str = "/test/vault"
   let assert Ok(path) = vault.vault_path_from_string(path_str)
   let files = dict.from_list([#(path_str <> "/dummy.md", "")])
-  let fs = fake_file_system.new(files)
+  let fs = fake_file_system.from_contents(files)
   let ctx = context_with_fs(fs)
   let assert Ok(stats) = vault.gather_stats(path, ctx)
   stats
@@ -15,7 +15,7 @@ pub fn stats() -> vault.Stats {
 
 pub fn context() -> vault.Context {
   vault.Context(
-    fs: fake_file_system.new(dict.new()),
+    fs: fake_file_system.from_contents(dict.new()),
     logger: logger_silent()
   )
 }

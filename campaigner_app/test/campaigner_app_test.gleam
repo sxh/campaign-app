@@ -79,7 +79,7 @@ pub fn gather_stats_fake_test() {
     #("/vault/note2.md", "World"),
     #("/vault/image.png", "binary")
   ])
-  let fs = fake_file_system.new(files)
+  let fs = fake_file_system.from_contents(files)
   let ctx = factories.context_with_fs(fs)
   let path = factories.vault_path("/vault")
   
@@ -118,7 +118,7 @@ pub fn render_dashboard_test() {
 
 pub fn render_dashboard_empty_test() {
   let path = factories.vault_path("/empty")
-  let fs = fake_file_system.new(dict.from_list([#("/empty/root", "")]))
+  let fs = fake_file_system.from_contents(dict.from_list([#("/empty/root", "")]))
   let ctx = factories.context_with_fs(fs)
   let assert Ok(_stats) = vault.gather_stats(path, ctx)
   
@@ -134,6 +134,34 @@ pub fn render_dashboard_empty_test() {
   let html = views.render_dashboard(vm) |> element.to_string
   html |> string.contains("Total Files: 1") |> should.be_true
   html |> string.contains("No notes found.") |> should.be_true
+}
+
+pub fn render_dashboard_full_test() {
+  let path = factories.vault_path("/path")
+  let fs = fake_file_system.from_contents(dict.from_list([
+    #("/path/n1.md", string.repeat("a", 600)),
+    #("/path/n2.md", string.repeat("b", 600))
+  ]))
+  let ctx = factories.context_with_fs(fs)
+  let assert Ok(stats) = vault.gather_stats(path, ctx)
+  
+  let html = views.render_dashboard(service.to_dashboard_view_model(stats)) |> element.to_string
+  html |> string.contains("You have some notes!") |> should.be_true
+  // Lustre escapes single quotes
+  html |> string.contains("Wow, that&#39;s a lot of writing!") |> should.be_true
+}
+
+pub fn render_dashboard_low_chars_test() {
+  let path = factories.vault_path("/path")
+  let fs = fake_file_system.from_contents(dict.from_list([
+    #("/path/n1.md", "small")
+  ]))
+  let ctx = factories.context_with_fs(fs)
+  let assert Ok(stats) = vault.gather_stats(path, ctx)
+  
+  let html = views.render_dashboard(service.to_dashboard_view_model(stats)) |> element.to_string
+  html |> string.contains("You have some notes!") |> should.be_true
+  html |> string.contains("Keep writing!") |> should.be_true
 }
 
 pub fn router_root_test() {
@@ -169,7 +197,7 @@ pub fn router_error_test() {
 }
 
 pub fn router_404_test() {
-  let path = factories.vault_path("/tmp")
+  let assert Ok(path) = vault.vault_path_from_string("/tmp")
   let ctx = factories.context()
   let res = router.router(["unknown"], path, ctx)
   res.status |> should.equal(404)
