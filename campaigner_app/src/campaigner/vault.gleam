@@ -31,7 +31,7 @@ pub type VaultError {
   InvalidPath(reason: String)
 }
 
-pub type Stats {
+pub opaque type Stats {
   Stats(
     total_files: Int, 
     md_files: Int, 
@@ -39,6 +39,24 @@ pub type Stats {
     total_characters: Int,
     vault_path: VaultPath
   )
+}
+
+// Getters for Stats
+pub fn get_total_files(stats: Stats) -> Int { stats.total_files }
+pub fn get_md_files(stats: Stats) -> Int { stats.md_files }
+pub fn get_image_files(stats: Stats) -> Int { stats.image_files }
+pub fn get_total_characters(stats: Stats) -> Int { stats.total_characters }
+pub fn get_vault_path(stats: Stats) -> VaultPath { stats.vault_path }
+
+// Internal constructor for gather_stats
+fn new_stats(
+  total_files: Int, 
+  md_files: Int, 
+  image_files: Int, 
+  total_characters: Int,
+  vault_path: VaultPath
+) -> Stats {
+  Stats(total_files, md_files, image_files, total_characters, vault_path)
 }
 
 pub fn gather_stats(path: VaultPath, ctx: Context) -> Result(Stats, VaultError) {
@@ -53,12 +71,12 @@ pub fn gather_stats(path: VaultPath, ctx: Context) -> Result(Stats, VaultError) 
   let image_files = list.filter(files, is_image)
   let total_chars = count_characters(md_files, ctx.fs.read)
 
-  Ok(Stats(
-    total_files: list.length(files),
-    md_files: list.length(md_files),
-    image_files: list.length(image_files),
-    total_characters: total_chars,
-    vault_path: path,
+  Ok(new_stats(
+    list.length(files),
+    list.length(md_files),
+    list.length(image_files),
+    total_chars,
+    path,
   ))
 }
 
@@ -73,7 +91,11 @@ fn count_characters(files: List(String), read_file: fn(String) -> Result(String,
   })
   
   list.fold(files, 0, fn(acc, _) {
-    acc + process.receive_forever(self)
+    // 5 second timeout per file read to prevent hanging
+    case process.receive(self, 5000) {
+      Ok(count) -> acc + count
+      Error(_) -> acc
+    }
   })
 }
 

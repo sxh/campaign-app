@@ -1,5 +1,6 @@
 import gleam/int
 import campaigner/vault.{type Stats, type VaultError}
+import campaigner/web/assets
 import lustre/element.{type Element}
 import lustre/element/html
 import lustre/attribute
@@ -14,7 +15,8 @@ pub fn layout(title: String, content: Element(msg)) -> Element(msg) {
       html.meta([
         attribute.attribute("name", "viewport"),
         attribute.attribute("content", "width=device-width, initial-scale=1")
-      ])
+      ]),
+      assets.global_styles()
     ]),
     html.body([], [
       content
@@ -23,8 +25,8 @@ pub fn layout(title: String, content: Element(msg)) -> Element(msg) {
 }
 
 pub fn render_dashboard(stats: Stats) {
-  let notes_msg = get_notes_message(stats.md_files)
-  let char_msg = get_chars_message(stats.total_characters)
+  let notes_msg = get_notes_message(vault.get_md_files(stats))
+  let char_msg = get_chars_message(vault.get_total_characters(stats))
 
   html.div([], [
     html.h1([], [element.text("Campaigner Dashboard")]),
@@ -33,23 +35,23 @@ pub fn render_dashboard(stats: Stats) {
     html.ul([], [
       html.li([], [
         element.text("Vault Path: "),
-        html.code([], [element.text(vault.vault_path_to_string(stats.vault_path))])
+        html.code([], [element.text(vault.vault_path_to_string(vault.get_vault_path(stats)))])
       ]),
       html.li([], [
         element.text("Total Files: "),
-        element.text(int.to_string(stats.total_files))
+        element.text(int.to_string(vault.get_total_files(stats)))
       ]),
       html.li([], [
         element.text("Markdown Notes: "),
-        element.text(int.to_string(stats.md_files))
+        element.text(int.to_string(vault.get_md_files(stats)))
       ]),
       html.li([], [
         element.text("Total Characters in Notes: "),
-        element.text(int.to_string(stats.total_characters))
+        element.text(int.to_string(stats |> vault.get_total_characters))
       ]),
       html.li([], [
         element.text("Images: "),
-        element.text(int.to_string(stats.image_files))
+        element.text(int.to_string(vault.get_image_files(stats)))
       ])
     ]),
     html.p([], [element.text(notes_msg)]),
@@ -70,7 +72,7 @@ pub fn render_error_page(error: VaultError) -> Element(msg) {
       #("Invalid Path", "The provided vault path is invalid: " <> reason)
   }
 
-  html.div([], [
+  html.div([attribute.class("error")], [
     html.h1([], [element.text(title)]),
     html.p([], [element.text(message)]),
     html.a([attribute.attribute("href", "/")], [element.text("Back to Dashboard")])

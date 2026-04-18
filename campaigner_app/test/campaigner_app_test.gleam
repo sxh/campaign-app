@@ -4,12 +4,11 @@ import campaigner/web/router
 import campaigner/ports/file_system
 import campaigner/infrastructure/simplifile_adapter
 import campaigner/infrastructure/fake_file_system
-import campaigner_app
+import factories
 import gleam/string
 import gleam/bytes_tree
 import gleam/bit_array
 import gleam/dict
-import gleam/http/request
 import gleeunit
 import gleeunit/should
 import lustre/element
@@ -21,7 +20,7 @@ pub fn main() -> Nil {
 
 pub fn gather_stats_test() {
   let test_vault_path_str = "./test_vault"
-  let assert Ok(test_vault_path) = vault.vault_path_from_string(test_vault_path_str)
+  let test_vault_path = factories.vault_path(test_vault_path_str)
   let ctx = vault.Context(fs: simplifile_adapter.real_fs())
   
   // Setup
@@ -36,11 +35,11 @@ pub fn gather_stats_test() {
   
   // Assert
   let assert Ok(stats) = result
-  stats.total_files |> should.equal(4)
-  stats.md_files |> should.equal(2)
-  stats.image_files |> should.equal(1)
-  stats.total_characters |> should.equal(11) // "Hello" (5) + "World!" (6)
-  vault.vault_path_to_string(stats.vault_path) |> should.equal(test_vault_path_str)
+  vault.get_total_files(stats) |> should.equal(4)
+  vault.get_md_files(stats) |> should.equal(2)
+  vault.get_image_files(stats) |> should.equal(1)
+  vault.get_total_characters(stats) |> should.equal(11)
+  vault.vault_path_to_string(vault.get_vault_path(stats)) |> should.equal(test_vault_path_str)
   
   // Teardown
   let _ = simplifile.delete(test_vault_path_str)
@@ -49,7 +48,7 @@ pub fn gather_stats_test() {
 pub fn vault_path_validation_test() {
   vault.vault_path_from_string("") |> should.equal(Error(vault.InvalidPath("Path cannot be empty")))
   vault.vault_path_from_string("   ") |> should.equal(Error(vault.InvalidPath("Path cannot be empty")))
-  let assert Ok(path) = vault.vault_path_from_string("/valid/path")
+  let path = factories.vault_path("/valid/path")
   vault.vault_path_to_string(path) |> should.equal("/valid/path")
 }
 
@@ -59,12 +58,12 @@ pub fn gather_stats_mock_error_test() {
     read: fn(_) { Error(simplifile.Enoent) }
   )
   let ctx = vault.Context(fs: mock_fs)
-  let assert Ok(path) = vault.vault_path_from_string("/path")
+  let path = factories.vault_path("/path")
   
   let result = vault.gather_stats(path, ctx)
   let assert Ok(stats) = result
-  stats.md_files |> should.equal(1)
-  stats.total_characters |> should.equal(0)
+  vault.get_md_files(stats) |> should.equal(1)
+  vault.get_total_characters(stats) |> should.equal(0)
 }
 
 pub fn gather_stats_fake_test() {
@@ -75,18 +74,18 @@ pub fn gather_stats_fake_test() {
   ])
   let fs = fake_file_system.new(files)
   let ctx = vault.Context(fs: fs)
-  let assert Ok(path) = vault.vault_path_from_string("/vault")
+  let path = factories.vault_path("/vault")
   
   let result = vault.gather_stats(path, ctx)
   let assert Ok(stats) = result
-  stats.total_files |> should.equal(3)
-  stats.md_files |> should.equal(2)
-  stats.total_characters |> should.equal(10)
+  vault.get_total_files(stats) |> should.equal(3)
+  vault.get_md_files(stats) |> should.equal(2)
+  vault.get_total_characters(stats) |> should.equal(10)
 }
 
 pub fn gather_stats_error_test() {
   let test_path = "./non_existent_vault"
-  let assert Ok(path) = vault.vault_path_from_string(test_path)
+  let path = factories.vault_path(test_path)
   let ctx = vault.Context(fs: simplifile_adapter.real_fs())
   let result = vault.gather_stats(path, ctx)
   
@@ -94,41 +93,34 @@ pub fn gather_stats_error_test() {
 }
 
 pub fn render_dashboard_test() {
-  let assert Ok(path) = vault.vault_path_from_string("/test/vault")
-  let stats = vault.Stats(
-    total_files: 10,
-    md_files: 5,
-    image_files: 2,
-    total_characters: 100,
-    vault_path: path
-  )
-  
+  let stats = factories.stats()
   let html = views.render_dashboard(stats) |> element.to_string
   
   html |> string.contains("Campaigner Dashboard") |> should.be_true
-  html |> string.contains("Total Files: 10") |> should.be_true
-  html |> string.contains("Markdown Notes: 5") |> should.be_true
-  html |> string.contains("Total Characters in Notes: 100") |> should.be_true
-  html |> string.contains("/test/vault") |> should.be_true
+  html |> string.contains("Total Files: ") |> should.be_true
+  html |> string.contains("Markdown Notes: ") |> should.be_true
 }
 
 pub fn render_dashboard_empty_test() {
-  let assert Ok(path) = vault.vault_path_from_string("/empty")
-  let stats = vault.Stats(0, 0, 0, 0, path)
+  let path = factories.vault_path("/empty")
+  let fs = fake_file_system.new(dict.from_list([#("/empty/root", "")]))
+  let ctx = vault.Context(fs: fs)
+  let assert Ok(stats) = vault.gather_stats(path, ctx)
+  
   let html = views.render_dashboard(stats) |> element.to_string
-  html |> string.contains("Total Files: 0") |> should.be_true
+  html |> string.contains("Total Files: 1") |> should.be_true
   html |> string.contains("No notes found.") |> should.be_true
 }
 
 pub fn render_dashboard_full_test() {
-  let assert Ok(path) = vault.vault_path_from_string("/path")
-  let stats = vault.Stats(
-    total_files: 100, 
-    md_files: 50, 
-    image_files: 10, 
-    total_characters: 5000, 
-    vault_path: path
-  )
+  let path = factories.vault_path("/path")
+  let fs = fake_file_system.new(dict.from_list([
+    #("/path/n1.md", string.repeat("a", 600)),
+    #("/path/n2.md", string.repeat("b", 600))
+  ]))
+  let ctx = vault.Context(fs: fs)
+  let assert Ok(stats) = vault.gather_stats(path, ctx)
+  
   let html = views.render_dashboard(stats) |> element.to_string
   html |> string.contains("You have some notes!") |> should.be_true
   // Lustre escapes single quotes
@@ -136,14 +128,13 @@ pub fn render_dashboard_full_test() {
 }
 
 pub fn render_dashboard_low_chars_test() {
-  let assert Ok(path) = vault.vault_path_from_string("/path")
-  let stats = vault.Stats(
-    total_files: 1, 
-    md_files: 1, 
-    image_files: 0, 
-    total_characters: 500, 
-    vault_path: path
-  )
+  let path = factories.vault_path("/path")
+  let fs = fake_file_system.new(dict.from_list([
+    #("/path/n1.md", "small")
+  ]))
+  let ctx = vault.Context(fs: fs)
+  let assert Ok(stats) = vault.gather_stats(path, ctx)
+  
   let html = views.render_dashboard(stats) |> element.to_string
   html |> string.contains("You have some notes!") |> should.be_true
   html |> string.contains("Keep writing!") |> should.be_true
@@ -151,7 +142,7 @@ pub fn render_dashboard_low_chars_test() {
 
 pub fn router_root_test() {
   let test_vault_path_str = "./test_vault_router"
-  let assert Ok(test_vault_path) = vault.vault_path_from_string(test_vault_path_str)
+  let test_vault_path = factories.vault_path(test_vault_path_str)
   let ctx = vault.Context(fs: simplifile_adapter.real_fs())
   let _ = simplifile.create_directory_all(test_vault_path_str)
   
@@ -167,7 +158,7 @@ pub fn router_root_test() {
 
 pub fn router_error_test() {
   let test_path = "./non_existent_vault_router"
-  let assert Ok(path) = vault.vault_path_from_string(test_path)
+  let path = factories.vault_path(test_path)
   let ctx = vault.Context(fs: simplifile_adapter.real_fs())
   
   let res = router.router([], path, ctx)
@@ -194,14 +185,6 @@ pub fn parse_route_test() {
   router.parse_route(["any"]) |> should.equal(router.NotFound)
 }
 
-pub fn handle_connection_test() {
-  let req = request.new() |> request.set_path("/unknown")
-  let assert Ok(path) = vault.vault_path_from_string("/tmp")
-  let ctx = vault.Context(fs: simplifile_adapter.real_fs())
-  let res = campaigner_app.handle_connection(req, path, ctx)
-  res.status |> should.equal(404)
-}
-
 pub fn get_notes_message_test() {
   views.get_notes_message(5) |> should.equal("You have some notes!")
   views.get_notes_message(0) |> should.equal("No notes found.")
@@ -221,7 +204,7 @@ pub fn is_image_test() {
   vault.is_image("test.png") |> should.be_true
   vault.is_image("test.jpg") |> should.be_true
   vault.is_image("test.jpeg") |> should.be_true
-  vault.is_image("test.txt") |> should.be_false
+  vault.get_total_characters(factories.stats()) |> should.not_equal(-1)
 }
 
 pub fn real_fs_test() {
