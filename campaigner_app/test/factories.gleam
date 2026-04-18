@@ -1,5 +1,6 @@
 import campaigner/vault
 import campaigner/ports/logger
+import campaigner/ports/chat_engine
 import campaigner/infrastructure/fake_file_system
 import gleam/dict
 
@@ -17,6 +18,7 @@ pub fn context() -> vault.Context {
   vault.Context(
     fs: fake_file_system.from_contents(dict.new()),
     logger: logger_silent(),
+    chat: chat_silent(),
     timeout_ms: 5000
   )
 }
@@ -25,6 +27,7 @@ pub fn context_with_fs(fs) -> vault.Context {
   vault.Context(
     fs: fs,
     logger: logger_silent(),
+    chat: chat_silent(),
     timeout_ms: 5000
   )
 }
@@ -33,6 +36,12 @@ pub fn logger_silent() -> logger.Logger {
   logger.Logger(
     info: fn(_, _) { Nil },
     error: fn(_, _) { Nil }
+  )
+}
+
+pub fn chat_silent() -> chat_engine.ChatEngine {
+  chat_engine.ChatEngine(
+    ask: fn(_, _) { Ok("") }
   )
 }
 

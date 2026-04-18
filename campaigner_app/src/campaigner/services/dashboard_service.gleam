@@ -16,6 +16,18 @@ pub fn prepare_dashboard_data(vault_path: vault.VaultPath, ctx: vault.Context) -
   }
 }
 
+pub fn ask_vault(prompt: String, vault_path: vault.VaultPath, ctx: vault.Context) -> Result(String, String) {
+  let path_str = vault.vault_path_to_string(vault_path)
+  case ctx.chat.ask(path_str, prompt) {
+    Ok(response) -> Ok(response)
+    Error(err) -> {
+      case err {
+        _ -> Error("Failed to communicate with chat engine")
+      }
+    }
+  }
+}
+
 pub fn render_dashboard_page(data: DashboardData) -> Element(msg) {
   to_dashboard_view_model(data.stats)
   |> views.render_dashboard

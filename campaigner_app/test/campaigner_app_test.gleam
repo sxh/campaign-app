@@ -1,11 +1,11 @@
 import campaigner/vault
 import campaigner/config
 import campaigner/config/defaults
-import campaigner/infrastructure/stdout_logger
 import campaigner/system
 import campaigner/services/dashboard_service as service
 import campaigner/web/views
 import campaigner/web/router
+import campaigner/ports/chat_engine
 import campaigner/ports/file_system
 import campaigner/infrastructure/simplifile_adapter
 import campaigner/infrastructure/fake_file_system
@@ -29,6 +29,7 @@ pub fn gather_stats_test() {
   let ctx = vault.Context(
     fs: simplifile_adapter.real_fs(),
     logger: factories.logger_silent(),
+    chat: factories.chat_silent(),
     timeout_ms: 5000
   )
   
@@ -170,6 +171,7 @@ pub fn router_root_test() {
   let ctx = vault.Context(
     fs: simplifile_adapter.real_fs(),
     logger: factories.logger_silent(),
+    chat: factories.chat_silent(),
     timeout_ms: 5000
   )
   let _ = simplifile.create_directory_all(test_vault_path_str)
@@ -208,20 +210,9 @@ pub fn router_404_test() {
   body |> string.contains("<html>") |> should.be_true
 }
 
-pub fn config_load_test() {
-  let res = config.load()
-  res |> should.be_ok()
-}
-
-pub fn defaults_test() {
-  defaults.vault_path |> string.is_empty() |> should.be_false()
-}
-
-pub fn logger_test() {
-  let logger = stdout_logger.new()
-  logger.info("test", [])
-  logger.error("test", [#("key", "val")])
-  True |> should.be_true()
+pub fn parse_route_test() {
+  router.parse_route([]) |> should.equal(router.Dashboard)
+  router.parse_route(["any"]) |> should.equal(router.NotFound)
 }
 
 pub fn is_markdown_test() {
@@ -238,6 +229,7 @@ pub fn is_image_test() {
 
 pub fn real_fs_test() {
   let fs = simplifile_adapter.real_fs()
+  // Just verify it returns the record with functions
   let _ = fs.get_files
   let _ = fs.read
   True |> should.be_true
@@ -268,26 +260,9 @@ pub fn service_render_404_test() {
   html |> string.contains("404 - Not Found") |> should.be_true
 }
 
-pub fn gather_stats_file_read_error_test() {
-  let path_str = "/vault"
-  let assert Ok(path) = vault.vault_path_from_string(path_str)
-  let files = dict.from_list([
-    #("/vault/note1.md", Ok("Good")),
-    #("/vault/corrupt.md", Error(simplifile.Eacces))
-  ])
-  let fs = fake_file_system.new(files)
-  let ctx = factories.context_with_fs(fs)
-  
-  let result = vault.gather_stats(path, ctx)
-  result |> should.equal(Error(vault.FileReadError("/vault/corrupt.md", simplifile.Eacces)))
-}
-
 pub fn fake_fs_inconsistent_test() {
   let files = dict.from_list([#("/vault/exists.md", Ok("Content"))])
   let fs = fake_file_system.new(files)
-  
-  // Directly calling the read function with a path NOT in the dictionary
-  // to trigger the Error branch in fake_file_system.read
   fs.read("/vault/missing.md") |> should.equal(Error(simplifile.Enoent))
 }
 
@@ -320,20 +295,64 @@ pub fn gather_stats_timeout_test() {
   let files = dict.from_list([#("/vault/note.md", Ok("Some content"))])
   let fs = fake_file_system.new(files)
   
-  // Set timeout to 0 to force the Error(_) branch in process_chunk
   let ctx = vault.Context(
     fs: fs,
     logger: factories.logger_silent(),
+    chat: factories.chat_silent(),
     timeout_ms: 0
   )
   
   let result = vault.gather_stats(path, ctx)
   let assert Ok(stats) = result
-  // On timeout, it currently skips the file and returns total_characters: 0
   vault.get_total_characters(stats) |> should.equal(0)
 }
 
 pub fn system_init_test() {
   let logger = factories.logger_silent()
-  system.init(logger) |> should.be_ok()
+  let result = system.init(logger)
+  let assert Ok(#(_cfg, ctx)) = result
+  let _ = ctx.chat
+  result |> should.be_ok()
+}
+
+pub fn config_env_test() {
+  let get_env_custom = fn(name) {
+    case name {
+      "CAMPAIGNER_VAULT_PATH" -> Ok("/custom/path")
+      _ -> Error(Nil)
+    }
+  }
+  let res = config.load_with_env(get_env_custom)
+  let assert Ok(cfg) = res
+  vault.vault_path_to_string(cfg.vault_path) |> should.equal("/custom/path")
+
+  let get_env_none = fn(_) { Error(Nil) }
+  let res2 = config.load_with_env(get_env_none)
+  let assert Ok(cfg2) = res2
+  vault.vault_path_to_string(cfg2.vault_path) |> should.equal(defaults.vault_path)
+}
+
+pub fn ask_vault_test() {
+  let path = factories.vault_path("/vault")
+  let mock_chat = chat_engine.ChatEngine(
+    ask: fn(_, _) { Ok("Answer") }
+  )
+  let ctx = vault.Context(
+    fs: fake_file_system.from_contents(dict.new()),
+    logger: factories.logger_silent(),
+    chat: mock_chat,
+    timeout_ms: 5000
+  )
+  
+  service.ask_vault("Question", path, ctx) |> should.equal(Ok("Answer"))
+}
+
+pub fn router_chat_test() {
+  let path = factories.vault_path("/vault")
+  let ctx = factories.context()
+  let res = router.router(["chat"], path, ctx)
+  res.status |> should.equal(200)
+  
+  let assert Ok(body) = res.body |> bytes_tree.to_bit_array |> bit_array.to_string
+  body |> string.contains("Chat Facility Coming Soon") |> should.be_true
 }

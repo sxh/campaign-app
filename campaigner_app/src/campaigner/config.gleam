@@ -24,12 +24,20 @@ fn list_to_binary(list: Dynamic) -> String
 fn is_list(val: Dynamic) -> Bool
 
 pub fn load() -> Result(Config, ConfigError) {
+  load_with_env(fn(name) {
+    let res = get_env_ffi(binary_to_list(name))
+    case is_list(res) {
+      True -> Ok(list_to_binary(res))
+      False -> Error(Nil)
+    }
+  })
+}
+
+pub fn load_with_env(get_env: fn(String) -> Result(String, Nil)) -> Result(Config, ConfigError) {
   let name = "CAMPAIGNER_VAULT_PATH"
-  let res = get_env_ffi(binary_to_list(name))
-  
-  let path_str = case is_list(res) {
-    True -> list_to_binary(res)
-    False -> defaults.vault_path
+  let path_str = case get_env(name) {
+    Ok(p) -> p
+    Error(_) -> defaults.vault_path
   }
   
   case vault.vault_path_from_string(path_str) {

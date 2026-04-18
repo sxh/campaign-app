@@ -5,6 +5,7 @@ import gleam/int
 import gleam/erlang/process
 import campaigner/ports/file_system.{type FileSystem}
 import campaigner/ports/logger.{type Logger}
+import campaigner/ports/chat_engine.{type ChatEngine}
 import simplifile.{type FileError}
 
 pub type FileCount = Int
@@ -27,7 +28,7 @@ pub fn vault_path_to_string(path: VaultPath) -> String {
 }
 
 pub type Context {
-  Context(fs: FileSystem, logger: Logger, timeout_ms: Int)
+  Context(fs: FileSystem, logger: Logger, chat: ChatEngine, timeout_ms: Int)
 }
 
 pub type VaultError {

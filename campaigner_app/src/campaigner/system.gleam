@@ -7,6 +7,7 @@ import campaigner/web/router
 import campaigner/ports/logger.{type Logger}
 import campaigner/infrastructure/simplifile_adapter
 import campaigner/infrastructure/stdout_logger
+import campaigner/infrastructure/gemini_cli_adapter
 
 pub fn start() {
   let logger = stdout_logger.new()
@@ -38,6 +39,7 @@ pub fn init(logger: Logger) -> Result(#(config.Config, vault.Context), String) {
       let ctx = vault.Context(
         fs: simplifile_adapter.real_fs(), 
         logger: logger,
+        chat: gemini_cli_adapter.new(),
         timeout_ms: 5000
       )
       Ok(#(cfg, ctx))
