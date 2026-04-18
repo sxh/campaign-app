@@ -1,6 +1,7 @@
 import campaigner/config
 import campaigner/config/defaults
 import campaigner/infrastructure/fake_file_system
+import campaigner/infrastructure/gemini_cli_adapter
 import campaigner/infrastructure/simplifile_adapter
 import campaigner/ports/chat_engine
 import campaigner/ports/file_system
@@ -430,4 +431,15 @@ pub fn router_chat_post_empty_test() {
   let assert Ok(body) =
     res.body |> bytes_tree.to_bit_array |> bit_array.to_string
   body |> string.contains("Please enter a question.") |> should.be_true
+}
+
+pub fn gemini_adapter_test() {
+  let adapter = gemini_cli_adapter.new_with_executor(fn(_) { "AI Response" })
+  adapter.ask("/path", "hello") |> should.equal(Ok("AI Response"))
+
+  let error_adapter = gemini_cli_adapter.new_with_executor(fn(_) { "" })
+  error_adapter.ask("/path", "hello")
+  |> should.equal(
+    Error(chat_engine.EngineError("Gemini CLI returned no output")),
+  )
 }
