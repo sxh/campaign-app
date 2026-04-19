@@ -6,28 +6,36 @@ import campaigner/ports/logger.{type Logger}
 import campaigner/vault
 import campaigner/web/router
 import gleam/http/response
+import gleam/result
 import mist
 
-pub fn start() {
+pub fn start() -> Result(Nil, String) {
+  start_on_port(8000)
+}
+
+pub fn start_on_port(port: Int) -> Result(Nil, String) {
   let logger = stdout_logger.new()
+  start_with_dependencies(port, logger, config.load)
+}
 
-  case init(logger) {
+pub fn start_with_dependencies(
+  port: Int,
+  logger: Logger,
+  load_config: fn() -> Result(config.Config, config.ConfigError),
+) -> Result(Nil, String) {
+  case init_with_config_loader(logger, load_config) {
     Ok(#(cfg, ctx)) -> {
-      logger.info("Starting Campaigner App on http://localhost:8000", [])
+      logger.info("Starting Campaigner App on port " <> int_to_string(port), [])
 
-      let assert Ok(_) =
-        mist.new(fn(req) {
-          router.router(req, cfg.vault_path, ctx)
-          |> response.map(mist.Bytes)
-        })
-        |> mist.port(8000)
-        |> mist.start
-
-      Nil
+      mist.new(create_route_handler(cfg.vault_path, ctx))
+      |> mist.port(port)
+      |> mist.start
+      |> result.replace(Nil)
+      |> result.replace_error("Failed to start server")
     }
     Error(err) -> {
       logger.error("Failed to start: " <> err, [])
-      Nil
+      Error(err)
     }
   }
 }
@@ -61,3 +69,15 @@ pub fn init_with_config_loader(
     }
   }
 }
+
+pub fn create_route_handler(vault_path: vault.VaultPath, ctx: vault.Context) {
+  fn(req) {
+    router.router(req, vault_path, ctx)
+    |> response.map(mist.Bytes)
+  }
+}
+
+// Internal helpers to avoid extra dependencies for basic logic
+@external(erlang, "erlang", "integer_to_binary")
+fn int_to_string(i: Int) -> String
+// Removed result_map_error as it's unused

@@ -1,8 +1,12 @@
 import campaigner/system
 
 pub fn main() {
-  system.start()
+  let _ = run()
   process_sleep_forever()
+}
+
+pub fn run() {
+  system.start()
 }
 
 @external(erlang, "timer", "sleep")

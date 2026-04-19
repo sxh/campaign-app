@@ -42,3 +42,4 @@ The application must follow Hexagonal Architecture principles:
 - **BEAM Concurrency & Performance:** Leverage the BEAM for parallel I/O with timeouts. For large-scale operations, use worker pools or chunking patterns to manage resource pressure.
 - **Test Segregation:** Maintain a clear distinction between fast Unit tests (using Fakes/Mocks) and slower Integration tests (using real infrastructure).
 - **Structured Observability:** The Logger port should ideally support structured data to facilitate production monitoring.
+- **Silent Tests:** On a successful test run, there should be no output or noise (e.g., Erlang supervisor crash reports). Tests should fail gracefully or mock components rather than triggering noisy supervisor crashes that pollute the test output.

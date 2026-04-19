@@ -55,3 +55,10 @@ pub fn string_from_vault_error(err: vault.VaultError) -> String {
     vault.InvalidPath(reason) -> reason
   }
 }
+
+pub fn is_valid_vault_path_format(path: String) -> Bool {
+  case path {
+    "" -> False
+    _ -> True
+  }
+}

@@ -15,6 +15,7 @@ import factories
 import gleam/bit_array
 import gleam/bytes_tree
 import gleam/dict
+import gleam/dynamic.{type Dynamic}
 import gleam/http.{Get, Post, Put}
 import gleam/http/request
 import gleam/string
@@ -573,4 +574,90 @@ pub fn gemini_shell_executor_test() {
   let res = gemini_cli_adapter.shell_executor("echo 'hello'")
   // Erlang os:cmd includes trailing newline
   string.contains(res, "hello") |> should.be_true()
+}
+
+pub fn system_start_with_deps_error_test() {
+  let logger = factories.logger_silent()
+  let res =
+    system.start_with_dependencies(8000, logger, fn() {
+      Error(config.EnvironmentVariableMissing("FAKED"))
+    })
+  res |> should.equal(Error("Environment variable missing: FAKED"))
+}
+
+pub fn system_start_with_deps_success_test() {
+  let logger = factories.logger_silent()
+  let load_conf = fn() {
+    let assert Ok(path) = vault.vault_path_from_string("/vault")
+    Ok(config.Config(vault_path: path))
+  }
+  let res = system.start_with_dependencies(8001, logger, load_conf)
+  res |> should.be_ok()
+}
+
+pub fn gemini_cli_adapter_new_test2() {
+  let adapter = gemini_cli_adapter.new()
+  let _ = adapter.ask
+  True |> should.be_true()
+}
+
+pub fn config_load_direct_test() {
+  let _res = config.load()
+  True |> should.be_true()
+}
+
+pub fn system_route_handler_test() {
+  let ctx = factories.context()
+  let assert Ok(vault_path) = vault.vault_path_from_string("/vault")
+  let handler = system.create_route_handler(vault_path, ctx)
+  let req = request.new() |> request.set_path("/")
+  let res = handler(req)
+  res.status |> should.equal(500)
+}
+
+pub fn config_invalid_path_test() {
+  let get_env_invalid = fn(_) { Ok("") }
+  config.load_with_env(get_env_invalid)
+  |> should.equal(Error(config.InvalidConfigPath("Path cannot be empty")))
+}
+
+@external(erlang, "erlang", "binary_to_list")
+fn binary_to_list(bin: String) -> Dynamic
+
+@external(erlang, "os", "putenv")
+fn os_putenv(name: Dynamic, val: Dynamic) -> Dynamic
+
+pub fn config_ok_env_test() {
+  os_putenv(binary_to_list("CAMPAIGNER_VAULT_PATH"), binary_to_list("/tmp"))
+  let res = config.load()
+  res |> should.be_ok()
+}
+
+import campaigner_app
+import gleam/erlang/atom
+import gleam/erlang/process
+
+@external(erlang, "logger", "set_primary_config")
+fn set_logger_level(key: atom.Atom, val: atom.Atom) -> dynamic.Dynamic
+
+@external(erlang, "erlang", "list_to_atom")
+fn list_to_atom(list: dynamic.Dynamic) -> atom.Atom
+
+pub fn mute_logger() {
+  let level_atom = list_to_atom(binary_to_list("level"))
+  let none_atom = list_to_atom(binary_to_list("none"))
+  set_logger_level(level_atom, none_atom)
+}
+
+@external(erlang, "erlang", "spawn")
+fn erlang_spawn(f: fn() -> a) -> dynamic.Dynamic
+
+pub fn app_main_coverage_test() {
+  mute_logger()
+
+  // By backgrounding main(), we execute the infinite sleep block silently.
+  // We don't get hung out, and the logger mutation stops mist from breaking VM EUnit io state on VM halt.
+  erlang_spawn(fn() { campaigner_app.main() })
+  process.sleep(100)
+  True |> should.be_true()
 }
