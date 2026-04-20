@@ -1,5 +1,5 @@
 import campaigner/config
-import campaigner/config/defaults
+
 import campaigner/infrastructure/fake_file_system
 import campaigner/infrastructure/gemini_cli_adapter
 import campaigner/infrastructure/simplifile_adapter
@@ -456,7 +456,9 @@ pub fn config_env_test() {
   let res2 = config.load_with_env(get_env_none)
   let assert Ok(cfg2) = res2
   vault.vault_path_to_string(cfg2.vault_path)
-  |> should.equal(defaults.vault_path)
+  |> should.equal(
+    "/Users/steve.hayes/Library/Mobile Documents/iCloud~md~obsidian/Documents/CthulhuVault/",
+  )
 }
 
 pub fn config_env_with_spaces_test() {
