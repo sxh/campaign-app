@@ -527,6 +527,18 @@ pub fn render_chat_test() {
   html |> string.contains("A vampire.") |> should.be_true
 }
 
+pub fn render_chat_no_disabled_attribute_test() {
+  let vm = views.ChatViewModel(prompt: "", response: "", error: "")
+  let html = views.render_chat(vm) |> element.to_string
+  html |> string.contains("disabled=") |> should.be_false
+}
+
+pub fn render_chat_script_contains_readonly_test() {
+  let vm = views.ChatViewModel(prompt: "", response: "", error: "")
+  let html = views.render_chat(vm) |> element.to_string
+  html |> string.contains("setAttribute('readonly'") |> should.be_true
+}
+
 pub fn router_chat_post_test() {
   let path = factories.vault_path("/vault")
   let mock_chat =
