@@ -152,7 +152,8 @@ pub fn gather_stats_get_files_error_test() {
   let ctx = factories.context_with_fs(mock_fs)
   let path = factories.vault_path("/path")
   let result = vault.gather_stats(path, ctx)
-  result |> should.equal(Error(vault.VaultNotFound("/path")))
+  result
+  |> should.equal(Error(vault.VaultAccessError("/path", simplifile.Eacces)))
 }
 
 pub fn gather_stats_fake_test() {
@@ -376,6 +377,11 @@ pub fn service_render_error_test() {
   let err3 = vault.FileReadError("/path", simplifile.Eacces)
   let html3 = service.render_error_page(err3) |> element.to_string
   html3 |> string.contains("Read Error") |> should.be_true
+
+  let err4 = vault.VaultAccessError("/vault", simplifile.Eacces)
+  let html4 = service.render_error_page(err4) |> element.to_string
+  html4 |> string.contains("Vault Access Error") |> should.be_true
+  html4 |> string.contains("check permissions") |> should.be_true
 }
 
 pub fn service_render_404_test() {
@@ -411,6 +417,11 @@ pub fn config_error_string_test() {
   |> should.equal("Path not found: /p")
   config.string_from_vault_error(vault.FileReadError("/f", simplifile.Eacces))
   |> should.equal("Read error: /f")
+  config.string_from_vault_error(vault.VaultAccessError(
+    "/vault",
+    simplifile.Eacces,
+  ))
+  |> should.equal("Vault access error: /vault")
   config.string_from_vault_error(vault.InvalidPath("oops"))
   |> should.equal("oops")
 }

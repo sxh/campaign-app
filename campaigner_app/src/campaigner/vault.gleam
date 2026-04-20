@@ -6,7 +6,7 @@ import gleam/int
 import gleam/list
 import gleam/result
 import gleam/string
-import simplifile.{type FileError}
+import simplifile.{type FileError, Enoent}
 
 pub type FileCount =
   Int
@@ -37,8 +37,17 @@ pub type Context {
 pub type VaultError {
   VaultNotFound(path: String)
   FileReadError(path: String, error: FileError)
+  VaultAccessError(path: String, error: FileError)
   InvalidPath(reason: String)
   Timeout(file: String)
+}
+
+fn map_get_files_error(path: String, file_error: FileError) -> VaultError {
+  // Map specific file errors to appropriate vault errors
+  case file_error {
+    Enoent -> VaultNotFound(path)
+    _ -> VaultAccessError(path, file_error)
+  }
 }
 
 pub opaque type Stats {
@@ -88,7 +97,9 @@ pub fn gather_stats(path: VaultPath, ctx: Context) -> Result(Stats, VaultError) 
 
   use files <- result.try(
     ctx.fs.get_files(path_str)
-    |> result.map_error(fn(_) { VaultNotFound(path_str) }),
+    |> result.map_error(fn(file_error) {
+      map_get_files_error(path_str, file_error)
+    }),
   )
 
   let md_files = list.filter(files, is_markdown)
