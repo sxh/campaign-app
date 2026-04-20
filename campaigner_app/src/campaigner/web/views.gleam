@@ -112,7 +112,7 @@ pub fn render_chat(vm: ChatViewModel) -> Element(msg) {
     ]),
     script(
       [],
-      "document.querySelector('.chat-form').addEventListener('submit', function() { this.querySelector('.btn-submit').classList.add('loading'); this.querySelector('.chat-input').setAttribute('disabled', 'disabled'); });",
+      "document.querySelector('.chat-form').addEventListener('submit', function() { const form = this; if (form.dataset.submitting) return; form.dataset.submitting = 'true'; this.querySelector('.btn-submit').classList.add('loading'); this.querySelector('.chat-input').setAttribute('readonly', 'readonly'); });",
     ),
     case vm.error {
       "" -> element.none()

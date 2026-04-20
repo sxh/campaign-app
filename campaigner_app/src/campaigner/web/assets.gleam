@@ -143,7 +143,7 @@ pub fn css() -> String {
       box-sizing: border-box;
       margin-bottom: 15px;
     }
-    .chat-input:disabled {
+    .chat-input:disabled, .chat-input[readonly] {
       background-color: #f8f9fa;
       cursor: not-allowed;
       opacity: 0.7;
