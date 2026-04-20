@@ -27,10 +27,12 @@ fn escape_shell_argument(arg: String) -> String {
 }
 
 fn is_error_output(output: String) -> Bool {
-  string.starts_with(output, "Unknown argument:")
-  || string.starts_with(output, "Usage:")
-  || string.starts_with(output, "error:")
-  || string.starts_with(output, "Error:")
+  string.contains(output, "Unknown argument:")
+  || string.contains(output, "Usage:")
+  || string.contains(output, "error:")
+  || string.contains(output, "Error:")
+  || string.contains(output, "Internal Server Error")
+  || string.contains(output, "internal server error")
 }
 
 pub fn new_with_executor(executor: fn(String) -> String) -> ChatEngine {

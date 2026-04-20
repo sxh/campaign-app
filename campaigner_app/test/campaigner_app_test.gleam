@@ -630,7 +630,9 @@ pub fn router_chat_engine_error_test() {
   let assert Ok(body) =
     res.body |> bytes_tree.to_bit_array |> bit_array.to_string
   body
-  |> string.contains("Failed to communicate with chat engine")
+  |> string.contains(
+    "Failed to communicate with chat engine. See server logs for details.",
+  )
   |> should.be_true
 }
 
@@ -1014,6 +1016,30 @@ pub fn gemini_cli_adapter_error_detection_test() {
   |> should.equal(
     Error(chat_engine.EngineError(
       "Gemini CLI error: Error: something went wrong",
+    )),
+  )
+
+  // Internal Server Error pattern
+  let executor_internal = fn(_) {
+    "Internal Server Error: something went wrong"
+  }
+  let adapter5 = gemini_cli_adapter.new_with_executor(executor_internal)
+  adapter5.ask("/path", "hello")
+  |> should.equal(
+    Error(chat_engine.EngineError(
+      "Gemini CLI error: Internal Server Error: something went wrong",
+    )),
+  )
+
+  // internal server error pattern (lowercase)
+  let executor_internal_lower = fn(_) {
+    "internal server error: something went wrong"
+  }
+  let adapter6 = gemini_cli_adapter.new_with_executor(executor_internal_lower)
+  adapter6.ask("/path", "hello")
+  |> should.equal(
+    Error(chat_engine.EngineError(
+      "Gemini CLI error: internal server error: something went wrong",
     )),
   )
 }

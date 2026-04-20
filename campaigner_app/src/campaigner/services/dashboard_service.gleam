@@ -1,3 +1,4 @@
+import campaigner/ports/chat_engine.{EngineError}
 import campaigner/vault
 import campaigner/web/views
 import gleam/int
@@ -25,8 +26,15 @@ pub fn ask_vault(
   let path_str = vault.vault_path_to_string(vault_path)
   case ctx.chat.ask(path_str, prompt) {
     Ok(response) -> Ok(response)
-    Error(_err) -> {
-      Error("Failed to communicate with chat engine")
+    Error(EngineError(reason)) -> {
+      ctx.logger.error("Chat engine error", [
+        #("reason", reason),
+        #("prompt", prompt),
+        #("vault_path", path_str),
+      ])
+      Error(
+        "Failed to communicate with chat engine. See server logs for details.",
+      )
     }
   }
 }
