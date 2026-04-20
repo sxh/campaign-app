@@ -940,3 +940,80 @@ pub fn stdout_logger_coverage_test() {
   })
   True |> should.be_true()
 }
+
+pub fn gemini_cli_adapter_command_format_test() {
+  // Test that the adapter uses the new gemini CLI syntax
+  // We'll create a mock executor that checks the command contains the right flags
+  let executor = fn(cmd) {
+    // Verify the command uses the new syntax, not the old "ask --context"
+    cmd |> string.contains("ask --context") |> should.be_false()
+    cmd |> string.contains("--prompt") |> should.be_true()
+    cmd |> string.contains("--include-directories") |> should.be_true()
+    cmd |> string.contains("--output-format text") |> should.be_true()
+    cmd |> string.contains("2>&1") |> should.be_true()
+    "Mock AI Response"
+  }
+  let adapter = gemini_cli_adapter.new_with_executor(executor)
+
+  // Test with simple path and prompt
+  adapter.ask("/test/path", "hello world") |> should.be_ok()
+}
+
+pub fn gemini_cli_adapter_escaping_test() {
+  // Test that shell escaping works correctly
+  // We'll create a mock executor that checks escaping of special characters
+  let executor = fn(cmd) {
+    // The command should have properly escaped single quotes
+    // Single quotes in the prompt should become '\''
+    cmd |> string.contains("'what'\\''s up?'") |> should.be_true()
+    // Spaces in path should be preserved (not escaped with backslashes)
+    cmd |> string.contains("/path with spaces") |> should.be_true()
+    // Should include stderr redirection
+    cmd |> string.contains("2>&1") |> should.be_true()
+    "Mock AI Response"
+  }
+  let adapter = gemini_cli_adapter.new_with_executor(executor)
+
+  adapter.ask("/path with spaces", "what's up?") |> should.be_ok()
+}
+
+pub fn gemini_cli_adapter_error_detection_test() {
+  // Test that error outputs from gemini CLI are properly detected
+  // Unknown argument pattern
+  let executor_unknown = fn(_) { "Unknown argument: context" }
+  let adapter = gemini_cli_adapter.new_with_executor(executor_unknown)
+  adapter.ask("/path", "hello")
+  |> should.equal(
+    Error(chat_engine.EngineError("Gemini CLI error: Unknown argument: context")),
+  )
+
+  // Usage pattern
+  let executor_usage = fn(_) { "Usage: gemini [options] [command]" }
+  let adapter2 = gemini_cli_adapter.new_with_executor(executor_usage)
+  adapter2.ask("/path", "hello")
+  |> should.equal(
+    Error(chat_engine.EngineError(
+      "Gemini CLI error: Usage: gemini [options] [command]",
+    )),
+  )
+
+  // error: pattern (lowercase)
+  let executor_lower = fn(_) { "error: something went wrong" }
+  let adapter3 = gemini_cli_adapter.new_with_executor(executor_lower)
+  adapter3.ask("/path", "hello")
+  |> should.equal(
+    Error(chat_engine.EngineError(
+      "Gemini CLI error: error: something went wrong",
+    )),
+  )
+
+  // Error: pattern (uppercase)
+  let executor_upper = fn(_) { "Error: something went wrong" }
+  let adapter4 = gemini_cli_adapter.new_with_executor(executor_upper)
+  adapter4.ask("/path", "hello")
+  |> should.equal(
+    Error(chat_engine.EngineError(
+      "Gemini CLI error: Error: something went wrong",
+    )),
+  )
+}
