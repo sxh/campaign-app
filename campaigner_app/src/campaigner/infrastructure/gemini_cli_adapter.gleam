@@ -1,5 +1,6 @@
 import campaigner/ports/chat_engine.{type ChatEngine, ChatEngine, EngineError}
 import gleam/dynamic.{type Dynamic}
+import gleam/string
 
 @external(erlang, "erlang", "binary_to_list")
 fn binary_to_list(bin: String) -> Dynamic
@@ -18,10 +19,19 @@ pub fn shell_executor(cmd: String) -> String {
   os_cmd(binary_to_list(cmd)) |> list_to_binary
 }
 
+fn escape_shell_argument(arg: String) -> String {
+  // Escape single quotes by replacing ' with '\''
+  // In a single-quoted shell string, the sequence '\'' ends the current string,
+  // adds a literal single quote, and starts a new single-quoted string
+  string.replace(arg, "'", "'\\''")
+}
+
 pub fn new_with_executor(executor: fn(String) -> String) -> ChatEngine {
   ChatEngine(ask: fn(context_path, prompt) {
+    let escaped_context = escape_shell_argument(context_path)
+    let escaped_prompt = escape_shell_argument(prompt)
     let cmd_str =
-      "gemini ask --context " <> context_path <> " \"" <> prompt <> "\""
+      "gemini ask --context '" <> escaped_context <> "' '" <> escaped_prompt <> "'"
     let output = executor(cmd_str)
 
     case output {

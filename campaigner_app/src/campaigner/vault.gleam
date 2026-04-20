@@ -38,6 +38,7 @@ pub type VaultError {
   VaultNotFound(path: String)
   FileReadError(path: String, error: FileError)
   InvalidPath(reason: String)
+  Timeout(file: String)
 }
 
 pub opaque type Stats {
@@ -119,23 +120,27 @@ fn count_characters(
   timeout: Int,
 ) -> Result(Int, VaultError) {
   // Process in chunks of 50 to avoid overwhelming the BEAM for huge vaults
-  sized_chunk(files, 50)
+  groups_of(files, 50)
   |> list.fold(Ok(0), fn(acc, chunk) {
     use current_total <- result.try(acc)
     use chunk_total <- result.try(process_chunk(chunk, read_file, timeout))
     Ok(current_total + chunk_total)
   })
 }
-
-pub fn sized_chunk(list: List(a), count: Int) -> List(List(a)) {
+fn groups_of(list: List(a), count: Int) -> List(List(a)) {
   case list {
     [] -> []
     _ -> {
       let #(first, rest) = list.split(list, count)
-      [first, ..sized_chunk(rest, count)]
+      [first, ..groups_of(rest, count)]
     }
   }
 }
+pub fn sized_chunk(list: List(a), count: Int) -> List(List(a)) {
+  groups_of(list, count)
+}
+
+
 
 fn process_chunk(
   chunk: List(String),
@@ -154,8 +159,8 @@ fn process_chunk(
     case process.receive(self, timeout) {
       Ok(#(_file, Ok(content))) -> Ok(current_total + string.length(content))
       Ok(#(file, Error(err))) -> Error(FileReadError(file, err))
-      Error(_) -> Ok(current_total)
-      // Skip on timeout
+      Error(_) -> Error(Timeout(""))
+      // Timeout while reading file
     }
   })
 }

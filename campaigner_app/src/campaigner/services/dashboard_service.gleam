@@ -68,6 +68,10 @@ pub fn render_error_page(error: vault.VaultError) -> Element(msg) {
       "Invalid Path",
       "The provided vault path is invalid: " <> reason,
     )
+    vault.Timeout(file) -> #(
+      "Timeout",
+      "Reading file timed out: " <> file,
+    )
   }
 
   let vm = views.ErrorViewModel(title: title, message: message)
