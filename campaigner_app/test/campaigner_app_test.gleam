@@ -539,6 +539,15 @@ pub fn render_chat_script_contains_readonly_test() {
   html |> string.contains("setAttribute('readonly'") |> should.be_true
 }
 
+pub fn render_chat_script_contains_double_submission_guard_test() {
+  let vm = views.ChatViewModel(prompt: "", response: "", error: "")
+  let html = views.render_chat(vm) |> element.to_string
+  html |> string.contains("form.dataset.submitting") |> should.be_true
+  html
+  |> string.contains("if (form.dataset.submitting) return;")
+  |> should.be_true
+}
+
 pub fn router_chat_post_test() {
   let path = factories.vault_path("/vault")
   let mock_chat =
