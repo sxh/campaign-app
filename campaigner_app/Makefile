@@ -15,13 +15,16 @@ coverage:
 	@erl -pa build/dev/erlang/*/ebin -noshell -eval ' \
 		_ = cover:start(), \
 		_ = cover:compile_beam_directory("build/dev/erlang/campaigner_app/ebin"), \
-		_ = eunit:test([campaigner_app_test, integration_test]), \
+		_ = eunit:test([campaigner_app_test, integration_test], [verbose]), \
 		Modules = [campaigner_app, campaigner@vault, campaigner@web@views, campaigner@web@router, campaigner@services@dashboard_service, campaigner@infrastructure@simplifile_adapter, campaigner@infrastructure@fake_file_system, campaigner@infrastructure@stdout_logger, campaigner@infrastructure@gemini_cli_adapter, campaigner@config, campaigner@config@defaults, campaigner@system, campaigner@ports@chat_engine, campaigner@ports@file_system, campaigner@ports@logger], \
 		{Cov, Uncov} = lists:foldl(fun(M, {AccC1, AccU1}) -> \
 			case cover:analyse(M, coverage, line) of \
 				{ok, Lines} -> \
 					lists:foldl(fun({{_, _}, {C, _}}, {AccC, AccU}) -> \
-						{AccC + C, AccU + (1 - C)} \
+						case C > 0 of \
+							true -> {AccC + 1, AccU}; \
+							false -> {AccC, AccU + 1} \
+						end \
 					end, {AccC1, AccU1}, Lines); \
 				_ -> {AccC1, AccU1} \
 			end \
@@ -44,7 +47,10 @@ check-coverage: lint warnings
 			case cover:analyse(M, coverage, line) of \
 				{ok, Lines} -> \
 					lists:foldl(fun({{_, _}, {C, _}}, {AccC, AccU}) -> \
-						{AccC + C, AccU + (1 - C)} \
+						case C > 0 of \
+							true -> {AccC + 1, AccU}; \
+							false -> {AccC, AccU + 1} \
+						end \
 					end, {AccC1, AccU1}, Lines); \
 				_ -> {AccC1, AccU1} \
 			end \

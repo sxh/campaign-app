@@ -5,6 +5,8 @@ import campaigner/infrastructure/stdout_logger
 import campaigner/ports/logger.{type Logger}
 import campaigner/vault
 import campaigner/web/router
+import gleam/bytes_tree
+import gleam/http/request
 import gleam/http/response
 import gleam/result
 import mist
@@ -71,9 +73,36 @@ pub fn init_with_config_loader(
 }
 
 pub fn create_route_handler(vault_path: vault.VaultPath, ctx: vault.Context) {
-  fn(req) {
-    router.router(req, vault_path, ctx)
-    |> response.map(mist.Bytes)
+  create_route_handler_with_reader(vault_path, ctx, mist.read_body(
+    _,
+    1024 * 1024,
+  ))
+}
+
+pub fn create_route_handler_with_reader(
+  vault_path: vault.VaultPath,
+  ctx: vault.Context,
+  read_body: fn(request.Request(mist.Connection)) ->
+    Result(request.Request(BitArray), any),
+) {
+  fn(req) { handle_request(req, vault_path, ctx, read_body) }
+}
+
+pub fn handle_request(
+  req: request.Request(c),
+  vault_path: vault.VaultPath,
+  ctx: vault.Context,
+  read_body: fn(request.Request(c)) -> Result(request.Request(BitArray), any),
+) -> response.Response(mist.ResponseData) {
+  case read_body(req) {
+    Ok(req) -> {
+      router.router(req, vault_path, ctx)
+      |> response.map(mist.Bytes)
+    }
+    Error(_) -> {
+      response.new(400)
+      |> response.set_body(mist.Bytes(bytes_tree.from_string("Bad Request")))
+    }
   }
 }
 

@@ -1,5 +1,6 @@
 import campaigner/ports/chat_engine.{type ChatEngine, ChatEngine, EngineError}
 import gleam/dynamic.{type Dynamic}
+import gleam/string
 
 @external(erlang, "erlang", "binary_to_list")
 fn binary_to_list(bin: String) -> Dynamic
@@ -20,8 +21,13 @@ pub fn shell_executor(cmd: String) -> String {
 
 pub fn new_with_executor(executor: fn(String) -> String) -> ChatEngine {
   ChatEngine(ask: fn(context_path, prompt) {
+    let escaped_prompt = string.replace(prompt, "\"", "\\\"")
     let cmd_str =
-      "gemini ask --context " <> context_path <> " \"" <> prompt <> "\""
+      "gemini --prompt \""
+      <> escaped_prompt
+      <> "\" --include-directories \""
+      <> context_path
+      <> "\" --output-format text"
     let output = executor(cmd_str)
 
     case output {

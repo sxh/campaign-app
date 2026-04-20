@@ -38,6 +38,7 @@ pub type VaultError {
   VaultNotFound(path: String)
   FileReadError(path: String, error: FileError)
   InvalidPath(reason: String)
+  Timeout(String)
 }
 
 pub opaque type Stats {
@@ -154,8 +155,7 @@ fn process_chunk(
     case process.receive(self, timeout) {
       Ok(#(_file, Ok(content))) -> Ok(current_total + string.length(content))
       Ok(#(file, Error(err))) -> Error(FileReadError(file, err))
-      Error(_) -> Ok(current_total)
-      // Skip on timeout
+      Error(_) -> Error(Timeout(""))
     }
   })
 }

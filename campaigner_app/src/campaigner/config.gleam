@@ -53,6 +53,7 @@ pub fn string_from_vault_error(err: vault.VaultError) -> String {
     vault.VaultNotFound(p) -> "Path not found: " <> p
     vault.FileReadError(p, _) -> "Read error: " <> p
     vault.InvalidPath(reason) -> reason
+    vault.Timeout(reason) -> "Timeout: " <> reason
   }
 }
 

@@ -1,6 +1,7 @@
 import campaigner/services/dashboard_service as service
 import campaigner/vault
 import campaigner/web/views
+import gleam/bit_array
 import gleam/bytes_tree.{type BytesTree}
 import gleam/http.{Get, Post}
 import gleam/http/request.{type Request}
@@ -8,6 +9,7 @@ import gleam/http/response.{type Response}
 import gleam/list
 import gleam/result
 import gleam/string
+import gleam/uri
 import lustre/element
 
 pub type Route {
@@ -25,7 +27,7 @@ pub fn parse_route(path: List(String)) -> Route {
 }
 
 pub fn router(
-  req: Request(t),
+  req: Request(BitArray),
   vault_path: vault.VaultPath,
   ctx: vault.Context,
 ) -> Response(BytesTree) {
@@ -57,7 +59,7 @@ pub fn serve_dashboard(
 }
 
 pub fn serve_chat(
-  req: Request(t),
+  req: Request(BitArray),
   vault_path: vault.VaultPath,
   ctx: vault.Context,
 ) -> Response(BytesTree) {
@@ -70,11 +72,13 @@ pub fn serve_chat(
       |> response.set_body(response.new(200), _)
     }
     Post -> {
-      // Very basic form parsing for now
-      // In a real app we'd use a proper form decoder
-      let query = request.get_query(req) |> result.unwrap([])
+      let body_string = bit_array.to_string(req.body) |> result.unwrap("")
+      ctx.logger.info("POST /chat body: " <> body_string, [])
+
+      let query = uri.parse_query(body_string) |> result.unwrap([])
       let prompt =
         list.key_find(query, "prompt") |> result.unwrap("") |> string.trim
+      ctx.logger.info("Parsed prompt: '" <> prompt <> "'", [])
 
       case prompt {
         "" -> {
