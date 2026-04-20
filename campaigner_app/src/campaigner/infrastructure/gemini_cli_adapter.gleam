@@ -31,11 +31,11 @@ pub fn new_with_executor(executor: fn(String) -> String) -> ChatEngine {
     let escaped_context = escape_shell_argument(context_path)
     let escaped_prompt = escape_shell_argument(prompt)
     let cmd_str =
-      "gemini ask --context '"
-      <> escaped_context
-      <> "' '"
+      "gemini --prompt '"
       <> escaped_prompt
-      <> "'"
+      <> "' --include-directories '"
+      <> escaped_context
+      <> "' --output-format text"
     let output = executor(cmd_str)
 
     case output {
