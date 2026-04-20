@@ -2,8 +2,8 @@ import campaigner/web/assets
 import lustre/attribute.{class, href, method, name, placeholder, type_}
 import lustre/element.{type Element}
 import lustre/element/html.{
-  a, body, button, div, form, h1, h2, head, html, main, p, section, text,
-  textarea,
+  a, body, button, div, form, h1, h2, head, html, main, p, script, section, span,
+  text, textarea,
 }
 
 pub type DashboardViewModel {
@@ -104,9 +104,16 @@ pub fn render_chat(vm: ChatViewModel) -> Element(msg) {
         ),
       ]),
       div([class("form-actions")], [
-        button([type_("submit"), class("btn-submit")], [text("Ask Gemini")]),
+        button([type_("submit"), class("btn-submit")], [
+          span([class("spinner")], []),
+          span([class("btn-text")], [text("Ask Gemini")]),
+        ]),
       ]),
     ]),
+    script(
+      [],
+      "document.querySelector('.chat-form').addEventListener('submit', function() { this.querySelector('.btn-submit').classList.add('loading'); this.querySelector('.chat-input').setAttribute('disabled', 'disabled'); });",
+    ),
     case vm.error {
       "" -> element.none()
       err -> div([class("alert-error")], [text(err)])

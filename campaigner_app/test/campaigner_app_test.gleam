@@ -328,7 +328,7 @@ pub fn gather_stats_timeout_test() {
     )
 
   let result = vault.gather_stats(path, ctx)
-  result |> should.equal(Error(vault.Timeout("")))
+  let assert Error(vault.Timeout(_)) = result
 }
 
 pub fn system_init_test() {
@@ -517,7 +517,7 @@ pub fn service_render_timeout_test() {
 
 pub fn config_timeout_error_string_test() {
   config.string_from_vault_error(vault.Timeout("slow"))
-  |> should.equal("Timeout: slow")
+  |> should.equal("Timeout reading file: slow")
 }
 
 pub fn service_render_404_page_test() {

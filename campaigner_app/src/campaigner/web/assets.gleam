@@ -143,6 +143,11 @@ pub fn css() -> String {
       box-sizing: border-box;
       margin-bottom: 15px;
     }
+    .chat-input:disabled {
+      background-color: #f8f9fa;
+      cursor: not-allowed;
+      opacity: 0.7;
+    }
 
     .btn-submit {
       background-color: var(--primary);
@@ -159,6 +164,34 @@ pub fn css() -> String {
       background-color: var(--primary-hover);
     }
 
+    .spinner {
+      display: none;
+      inline-size: 1rem;
+      block-size: 1rem;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-radius: 50%;
+      border-top-color: var(--white);
+      animation: spin 1s ease-in-out infinite;
+      margin-inline-end: 8px;
+      vertical-align: middle;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .btn-submit.loading {
+      opacity: 0.7;
+      pointer-events: none;
+    }
+
+    .btn-submit.loading .spinner {
+      display: inline-block;
+    }
+
+    .btn-submit.loading .btn-text {
+      display: none;
+    }
     .alert-error {
       background-color: #f8d7da;
       color: var(--error);
