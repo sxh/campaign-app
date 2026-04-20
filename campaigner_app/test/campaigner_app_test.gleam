@@ -1,5 +1,5 @@
 import campaigner/config
-import campaigner/config/defaults
+
 import campaigner/infrastructure/fake_file_system
 import campaigner/infrastructure/gemini_cli_adapter
 import campaigner/infrastructure/simplifile_adapter
@@ -65,6 +65,62 @@ pub fn gather_stats_test() {
   let _ = simplifile.delete(test_vault_path_str)
 }
 
+pub fn gather_stats_with_spaces_test() {
+  let test_vault_path_str = "./test vault space"
+  let test_vault_path = factories.vault_path(test_vault_path_str)
+  let ctx =
+    vault.Context(
+      fs: simplifile_adapter.real_fs(),
+      logger: factories.logger_silent(),
+      chat: factories.chat_silent(),
+      timeout_ms: 5000,
+    )
+
+  // Setup
+  let _ = simplifile.create_directory_all(test_vault_path_str)
+  let _ = simplifile.write(test_vault_path_str <> "/note1.md", "Hello")
+  let _ = simplifile.write(test_vault_path_str <> "/note2.md", "World!")
+
+  // Execute
+  let result = vault.gather_stats(test_vault_path, ctx)
+
+  // Assert
+  let assert Ok(stats) = result
+  vault.get_total_files(stats) |> should.equal(2)
+  vault.get_md_files(stats) |> should.equal(2)
+  vault.get_total_characters(stats) |> should.equal(11)
+
+  // Teardown
+  let _ = simplifile.delete(test_vault_path_str)
+}
+
+pub fn gather_stats_with_trailing_slash_test() {
+  // Create directory without slash
+  let dir = "./test_vault_slash"
+  let _ = simplifile.create_directory_all(dir)
+  let _ = simplifile.write(dir <> "/note.md", "Content")
+
+  // Use path with trailing slash
+  let test_vault_path_str = dir <> "/"
+  let test_vault_path = factories.vault_path(test_vault_path_str)
+  let ctx =
+    vault.Context(
+      fs: simplifile_adapter.real_fs(),
+      logger: factories.logger_silent(),
+      chat: factories.chat_silent(),
+      timeout_ms: 5000,
+    )
+
+  let result = vault.gather_stats(test_vault_path, ctx)
+  let assert Ok(stats) = result
+  vault.get_total_files(stats) |> should.equal(1)
+  vault.get_md_files(stats) |> should.equal(1)
+  vault.get_total_characters(stats) |> should.equal(7)
+
+  // Teardown
+  let _ = simplifile.delete(dir)
+}
+
 pub fn vault_path_validation_test() {
   vault.vault_path_from_string("")
   |> should.equal(Error(vault.InvalidPath("Path cannot be empty")))
@@ -85,6 +141,19 @@ pub fn gather_stats_mock_error_test() {
   let result = vault.gather_stats(path, ctx)
   result
   |> should.equal(Error(vault.FileReadError("note1.md", simplifile.Enoent)))
+}
+
+pub fn gather_stats_get_files_error_test() {
+  let mock_fs =
+    file_system.FileSystem(
+      get_files: fn(_) { Error(simplifile.Eacces) },
+      read: fn(_) { Ok("") },
+    )
+  let ctx = factories.context_with_fs(mock_fs)
+  let path = factories.vault_path("/path")
+  let result = vault.gather_stats(path, ctx)
+  result
+  |> should.equal(Error(vault.VaultAccessError("/path", simplifile.Eacces)))
 }
 
 pub fn gather_stats_fake_test() {
@@ -112,6 +181,20 @@ pub fn gather_stats_error_test() {
   // real_fs wrapper from factory
   let result = vault.gather_stats(path, ctx)
 
+  result |> should.equal(Error(vault.VaultNotFound(test_path)))
+}
+
+pub fn gather_stats_real_fs_vault_not_found_test() {
+  let test_path = "./non_existent_vault_real_fs"
+  let path = factories.vault_path(test_path)
+  let ctx =
+    vault.Context(
+      fs: simplifile_adapter.real_fs(),
+      logger: factories.logger_silent(),
+      chat: factories.chat_silent(),
+      timeout_ms: 5000,
+    )
+  let result = vault.gather_stats(path, ctx)
   result |> should.equal(Error(vault.VaultNotFound(test_path)))
 }
 
@@ -214,6 +297,26 @@ pub fn router_error_test() {
   body |> string.contains("<html>") |> should.be_true
 }
 
+pub fn router_real_fs_vault_not_found_test() {
+  let test_path = "./non_existent_vault_router_real"
+  let path = factories.vault_path(test_path)
+  let ctx =
+    vault.Context(
+      fs: simplifile_adapter.real_fs(),
+      logger: factories.logger_silent(),
+      chat: factories.chat_silent(),
+      timeout_ms: 5000,
+    )
+  let req = request.new() |> request.set_body(bit_array.from_string(""))
+  let res = router.router(req, path, ctx)
+  res.status |> should.equal(500)
+
+  let assert Ok(body) =
+    res.body |> bytes_tree.to_bit_array |> bit_array.to_string
+  body |> string.contains("Vault Not Found") |> should.be_true
+  body |> string.contains("<html>") |> should.be_true
+}
+
 pub fn router_404_test() {
   let assert Ok(path) = vault.vault_path_from_string("/tmp")
   let ctx = factories.context()
@@ -274,6 +377,11 @@ pub fn service_render_error_test() {
   let err3 = vault.FileReadError("/path", simplifile.Eacces)
   let html3 = service.render_error_page(err3) |> element.to_string
   html3 |> string.contains("Read Error") |> should.be_true
+
+  let err4 = vault.VaultAccessError("/vault", simplifile.Eacces)
+  let html4 = service.render_error_page(err4) |> element.to_string
+  html4 |> string.contains("Vault Access Error") |> should.be_true
+  html4 |> string.contains("check permissions") |> should.be_true
 }
 
 pub fn service_render_404_test() {
@@ -309,6 +417,11 @@ pub fn config_error_string_test() {
   |> should.equal("Path not found: /p")
   config.string_from_vault_error(vault.FileReadError("/f", simplifile.Eacces))
   |> should.equal("Read error: /f")
+  config.string_from_vault_error(vault.VaultAccessError(
+    "/vault",
+    simplifile.Eacces,
+  ))
+  |> should.equal("Vault access error: /vault")
   config.string_from_vault_error(vault.InvalidPath("oops"))
   |> should.equal("oops")
 }
@@ -354,7 +467,22 @@ pub fn config_env_test() {
   let res2 = config.load_with_env(get_env_none)
   let assert Ok(cfg2) = res2
   vault.vault_path_to_string(cfg2.vault_path)
-  |> should.equal(defaults.vault_path)
+  |> should.equal(
+    "/Users/steve.hayes/Library/Mobile Documents/iCloud~md~obsidian/Documents/CthulhuVault/",
+  )
+}
+
+pub fn config_env_with_spaces_test() {
+  let get_env_with_spaces = fn(name) {
+    case name {
+      "CAMPAIGNER_VAULT_PATH" -> Ok("  /path with spaces  ")
+      _ -> Error(Nil)
+    }
+  }
+  let res = config.load_with_env(get_env_with_spaces)
+  let assert Ok(cfg) = res
+  vault.vault_path_to_string(cfg.vault_path)
+  |> should.equal("/path with spaces")
 }
 
 pub fn ask_vault_test() {

@@ -64,6 +64,10 @@ pub fn render_error_page(error: vault.VaultError) -> Element(msg) {
       "Read Error",
       "There was an error reading a file in your vault: " <> p,
     )
+    vault.VaultAccessError(p, _) -> #(
+      "Vault Access Error",
+      "Unable to access vault at: " <> p <> " (check permissions)",
+    )
     vault.InvalidPath(reason) -> #(
       "Invalid Path",
       "The provided vault path is invalid: " <> reason,
