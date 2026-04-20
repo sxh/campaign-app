@@ -940,3 +940,36 @@ pub fn stdout_logger_coverage_test() {
   })
   True |> should.be_true()
 }
+
+pub fn gemini_cli_adapter_command_format_test() {
+  // Test that the adapter uses the new gemini CLI syntax
+  // We'll create a mock executor that checks the command contains the right flags
+  let executor = fn(cmd) {
+    // Verify the command uses the new syntax, not the old "ask --context"
+    cmd |> string.contains("ask --context") |> should.be_false()
+    cmd |> string.contains("--prompt") |> should.be_true()
+    cmd |> string.contains("--include-directories") |> should.be_true()
+    cmd |> string.contains("--output-format text") |> should.be_true()
+    "Mock AI Response"
+  }
+  let adapter = gemini_cli_adapter.new_with_executor(executor)
+
+  // Test with simple path and prompt
+  adapter.ask("/test/path", "hello world") |> should.be_ok()
+}
+
+pub fn gemini_cli_adapter_escaping_test() {
+  // Test that shell escaping works correctly
+  // We'll create a mock executor that checks escaping of special characters
+  let executor = fn(cmd) {
+    // The command should have properly escaped single quotes
+    // Single quotes in the prompt should become '\''
+    cmd |> string.contains("'what'\\''s up?'") |> should.be_true()
+    // Spaces in path should be preserved (not escaped with backslashes)
+    cmd |> string.contains("/path with spaces") |> should.be_true()
+    "Mock AI Response"
+  }
+  let adapter = gemini_cli_adapter.new_with_executor(executor)
+
+  adapter.ask("/path with spaces", "what's up?") |> should.be_ok()
+}
