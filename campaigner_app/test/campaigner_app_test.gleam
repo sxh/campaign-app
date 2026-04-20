@@ -322,8 +322,7 @@ pub fn gather_stats_timeout_test() {
     )
 
   let result = vault.gather_stats(path, ctx)
-  let assert Ok(stats) = result
-  vault.get_total_characters(stats) |> should.equal(0)
+  let assert Error(vault.Timeout(_)) = result
 }
 
 pub fn system_init_test() {
