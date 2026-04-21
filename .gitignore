@@ -1,2 +1,30 @@
 .idea/
 *.html
+
+# Gradle
+.gradle/
+build/
+out/
+*.log
+*.swp
+.DS_Store
+
+# Kotlin
+*.iml
+*.ipr
+*.iws
+
+# Local configuration
+local.properties
+
+# Gradle wrapper
+!gradle/wrapper/gradle-wrapper.jar
+
+# Generated
+**/generated/
+**/generated_src/
+**/generated_test_src/
+
+# Logs
+logs/
+*.log
