@@ -215,5 +215,76 @@ pub fn css() -> String {
     }
 
     .error-page { text-align: center; margin-top: 50px; }
+
+    /* Terminal emulator styles */
+    .terminal-container {
+      background: #1e1e1e;
+      border-radius: 8px;
+      overflow: hidden;
+      margin: 20px 0 30px 0;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+
+    .terminal-header {
+      background: #2d2d2d;
+      padding: 12px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #404040;
+    }
+
+    .terminal-title {
+      color: #f0f0f0;
+      font-weight: bold;
+      font-size: 0.9rem;
+    }
+
+    .terminal-path {
+      color: #aaa;
+      font-size: 0.8rem;
+    }
+
+    .terminal-path code {
+      background: #3a3a3a;
+      color: #4fc3f7;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    }
+
+    .terminal-body {
+      padding: 20px;
+      font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+      font-size: 0.9rem;
+      line-height: 1.5;
+      min-height: 120px;
+    }
+
+    .terminal-line {
+      margin-bottom: 8px;
+    }
+
+    .terminal-prompt {
+      color: #4caf50;
+      font-weight: bold;
+      margin-right: 8px;
+    }
+
+    .terminal-command {
+      color: #f0f0f0;
+    }
+
+    .terminal-output {
+      color: #aaa;
+      font-style: italic;
+    }
+
+    .terminal-command code {
+      background: #3a3a3a;
+      color: #ff9800;
+      padding: 1px 4px;
+      border-radius: 2px;
+    }
   "
 }

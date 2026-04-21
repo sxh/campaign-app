@@ -23,7 +23,12 @@ pub type ErrorViewModel {
 }
 
 pub type ChatViewModel {
-  ChatViewModel(prompt: String, response: String, error: String)
+  ChatViewModel(
+    vault_path: String,
+    prompt: String,
+    response: String,
+    error: String,
+  )
 }
 
 pub fn layout(title: String, content: Element(msg)) -> Element(msg) {
@@ -91,6 +96,41 @@ pub fn render_chat(vm: ChatViewModel) -> Element(msg) {
       text(
         "Ask questions about your campaign notes using the power of Gemini CLI.",
       ),
+    ]),
+    // Terminal emulator section
+    div([class("terminal-container")], [
+      div([class("terminal-header")], [
+        span([class("terminal-title")], [text("Vault Terminal")]),
+        span([class("terminal-path")], [
+          text("Path: "),
+          html.code([], [text(vm.vault_path)]),
+        ]),
+      ]),
+      div([class("terminal-body")], [
+        div([class("terminal-line")], [
+          span([class("terminal-prompt")], [text("$ ")]),
+          span([class("terminal-command")], [
+            text("cd "),
+            html.code([], [text(vm.vault_path)]),
+          ]),
+        ]),
+        div([class("terminal-line")], [
+          span([class("terminal-prompt")], [text("$ ")]),
+          span([class("terminal-command")], [text("ls -la | head -5")]),
+        ]),
+        div([class("terminal-line")], [
+          span([class("terminal-output")], [
+            text("(Terminal opened in vault folder)"),
+          ]),
+        ]),
+        div([class("terminal-line")], [
+          span([class("terminal-output")], [
+            text(
+              "Use the chat below to ask questions about your vault contents.",
+            ),
+          ]),
+        ]),
+      ]),
     ]),
     form([method("POST"), class("chat-form")], [
       div([class("form-group")], [

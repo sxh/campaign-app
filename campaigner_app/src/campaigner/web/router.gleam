@@ -63,9 +63,17 @@ pub fn serve_chat(
   vault_path: vault.VaultPath,
   ctx: vault.Context,
 ) -> Response(BytesTree) {
+  let vault_path_str = vault.vault_path_to_string(vault_path)
+
   case req.method {
     Get -> {
-      let vm = views.ChatViewModel(prompt: "", response: "", error: "")
+      let vm =
+        views.ChatViewModel(
+          vault_path: vault_path_str,
+          prompt: "",
+          response: "",
+          error: "",
+        )
       service.render_chat_page(vm)
       |> element.to_string
       |> bytes_tree.from_string
@@ -84,6 +92,7 @@ pub fn serve_chat(
         "" -> {
           let vm =
             views.ChatViewModel(
+              vault_path: vault_path_str,
               prompt: "",
               response: "",
               error: "Please enter a question.",
@@ -97,7 +106,12 @@ pub fn serve_chat(
           case service.ask_vault(prompt, vault_path, ctx) {
             Ok(res) -> {
               let vm =
-                views.ChatViewModel(prompt: prompt, response: res, error: "")
+                views.ChatViewModel(
+                  vault_path: vault_path_str,
+                  prompt: prompt,
+                  response: res,
+                  error: "",
+                )
               service.render_chat_page(vm)
               |> element.to_string
               |> bytes_tree.from_string
@@ -105,7 +119,12 @@ pub fn serve_chat(
             }
             Error(err) -> {
               let vm =
-                views.ChatViewModel(prompt: prompt, response: "", error: err)
+                views.ChatViewModel(
+                  vault_path: vault_path_str,
+                  prompt: prompt,
+                  response: "",
+                  error: err,
+                )
               service.render_chat_page(vm)
               |> element.to_string
               |> bytes_tree.from_string
