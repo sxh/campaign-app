@@ -7,11 +7,6 @@ plugins {
 
 import org.jetbrains.compose.ExperimentalComposeLibrary
 
-// Remove the explicit 'application' block to avoid collision with Compose's run task
-// application {
-//     mainClass.set("com.example.MainKt")
-// }
-
 group = "com.example"
 version = "1.0-SNAPSHOT"
 
@@ -79,6 +74,6 @@ tasks.named("koverVerify") {
 
 tasks.register("verify") {
     group = "verification"
-    description = "Runs the sequential verification pipeline: detekt -> test -> koverCoverage"
+    description = "Runs the sequential verification pipeline: detekt -> test -> koverVerify"
     dependsOn("check")
 }

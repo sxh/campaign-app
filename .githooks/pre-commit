@@ -3,12 +3,8 @@ set -e
 
 echo "Running pre-commit checks..."
 
-# Run detekt static analysis
-echo "Running detekt..."
-./gradlew detekt
-
-# Run tests
-echo "Running tests..."
-./gradlew test
+# Run the complete verification pipeline
+echo "Running verification pipeline (detekt -> test -> koverVerify)..."
+./gradlew verify
 
 echo "All checks passed!"
