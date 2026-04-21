@@ -1,0 +1,10 @@
+#!/bin/bash
+set -e
+
+echo "Running pre-commit checks..."
+
+# Run the complete verification pipeline
+echo "Running verification pipeline (detekt -> test -> koverVerify)..."
+./gradlew verify
+
+echo "All checks passed!"
