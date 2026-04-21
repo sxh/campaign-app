@@ -1,0 +1,19 @@
+config:
+  validation: true
+
+build:
+  maxIssues: 0
+  weights:
+    complexity: 2
+
+style:
+  MaxLineLength:
+    active: true
+    maxLineLength: 120
+  ReturnCount:
+    active: true
+    max: 3
+  MagicNumber:
+    active: true
+    ignoreNumbers: ['-1', '0', '1', '2']
+    ignorePropertyDeclaration: true

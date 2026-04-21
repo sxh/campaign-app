@@ -1,0 +1,14 @@
+#!/bin/bash
+set -e
+
+echo "Running pre-commit checks..."
+
+# Run detekt static analysis
+echo "Running detekt..."
+./gradlew detekt
+
+# Run tests
+echo "Running tests..."
+./gradlew test
+
+echo "All checks passed!"
