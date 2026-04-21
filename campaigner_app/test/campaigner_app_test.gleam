@@ -518,6 +518,7 @@ pub fn router_chat_test() {
 pub fn render_chat_test() {
   let vm =
     views.ChatViewModel(
+      vault_path: "/test/vault",
       prompt: "Who is Strahd?",
       response: "A vampire.",
       error: "",
@@ -525,22 +526,41 @@ pub fn render_chat_test() {
   let html = views.render_chat(vm) |> element.to_string
   html |> string.contains("Who is Strahd?") |> should.be_true
   html |> string.contains("A vampire.") |> should.be_true
+  html |> string.contains("/test/vault") |> should.be_true
 }
 
 pub fn render_chat_no_disabled_attribute_test() {
-  let vm = views.ChatViewModel(prompt: "", response: "", error: "")
+  let vm =
+    views.ChatViewModel(
+      vault_path: "/test/vault",
+      prompt: "",
+      response: "",
+      error: "",
+    )
   let html = views.render_chat(vm) |> element.to_string
   html |> string.contains("disabled=") |> should.be_false
 }
 
 pub fn render_chat_script_contains_readonly_test() {
-  let vm = views.ChatViewModel(prompt: "", response: "", error: "")
+  let vm =
+    views.ChatViewModel(
+      vault_path: "/test/vault",
+      prompt: "",
+      response: "",
+      error: "",
+    )
   let html = views.render_chat(vm) |> element.to_string
   html |> string.contains("setAttribute('readonly'") |> should.be_true
 }
 
 pub fn render_chat_script_contains_double_submission_guard_test() {
-  let vm = views.ChatViewModel(prompt: "", response: "", error: "")
+  let vm =
+    views.ChatViewModel(
+      vault_path: "/test/vault",
+      prompt: "",
+      response: "",
+      error: "",
+    )
   let html = views.render_chat(vm) |> element.to_string
   html |> string.contains("form.dataset.submitting") |> should.be_true
   html

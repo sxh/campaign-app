@@ -9,6 +9,17 @@ pub fn css() -> String {
       --gray: #6c757d;
       --border: #dee2e6;
       --error: #dc3545;
+      
+      /* Terminal colors */
+      --terminal-bg: #1e1e1e;
+      --terminal-header-bg: #2d2d2d;
+      --terminal-border: #404040;
+      --terminal-text: #f0f0f0;
+      --terminal-muted: #aaa;
+      --terminal-prompt: #4caf50;
+      --terminal-path: #4fc3f7;
+      --terminal-command: #ff9800;
+      --terminal-font: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
     }
 
     body {
@@ -215,5 +226,76 @@ pub fn css() -> String {
     }
 
     .error-page { text-align: center; margin-top: 50px; }
+
+    /* Terminal emulator styles */
+    .terminal-container {
+      background: var(--terminal-bg);
+      border-radius: 8px;
+      overflow: hidden;
+      margin: 20px 0 30px 0;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+
+    .terminal-header {
+      background: var(--terminal-header-bg);
+      padding: 12px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--terminal-border);
+    }
+
+    .terminal-title {
+      color: var(--terminal-text);
+      font-weight: bold;
+      font-size: 0.9rem;
+    }
+
+    .terminal-path {
+      color: var(--terminal-muted);
+      font-size: 0.8rem;
+    }
+
+    .terminal-path code {
+      background: var(--terminal-header-bg);
+      color: var(--terminal-path);
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-family: var(--terminal-font);
+    }
+
+    .terminal-body {
+      padding: 20px;
+      font-family: var(--terminal-font);
+      font-size: 0.9rem;
+      line-height: 1.5;
+      min-height: 120px;
+    }
+
+    .terminal-line {
+      margin-bottom: 8px;
+    }
+
+    .terminal-prompt {
+      color: var(--terminal-prompt);
+      font-weight: bold;
+      margin-right: 8px;
+    }
+
+    .terminal-command {
+      color: var(--terminal-text);
+    }
+
+    .terminal-output {
+      color: var(--terminal-muted);
+      font-style: italic;
+    }
+
+    .terminal-command code {
+      background: var(--terminal-header-bg);
+      color: var(--terminal-command);
+      padding: 1px 4px;
+      border-radius: 2px;
+    }
   "
 }
