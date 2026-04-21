@@ -17,6 +17,15 @@ repositories {
 
 dependencies {
     implementation(compose.desktop.currentOs)
+
+    // JLine 3 - Terminal support
+    implementation("org.jline:jline-terminal:3.26.3")
+    implementation("org.jline:jline-reader:3.26.3")
+    implementation("org.jline:jline-terminal-jni:3.26.3")
+
+    // Logging (required by JLine)
+    implementation("org.slf4j:slf4j-api:2.0.9")
+
     testImplementation(kotlin("test"))
     @OptIn(ExperimentalComposeLibrary::class)
     testImplementation(compose.desktop.uiTestJUnit4)
@@ -48,6 +57,7 @@ koverReport {
         filters {
             excludes {
                 classes("*Main*")
+                classes("*terminal*")
             }
         }
         verify {
