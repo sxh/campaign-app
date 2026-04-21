@@ -60,14 +60,14 @@ koverReport {
                 classes("*terminal*")
             }
         }
-        verify {
-            rule("Basic Line Coverage") {
-                isEnabled = true
-                bound {
-                    minValue = 80
+verify {
+                rule("Basic Line Coverage") {
+                    isEnabled = true
+                    bound {
+                        minValue = 95
+                    }
                 }
             }
-        }
     }
 }
 

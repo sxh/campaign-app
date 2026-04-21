@@ -70,7 +70,7 @@ This project follows **Extreme Programming (XP)** and **Hexagonal Architecture**
 
 - Unit tests for all domain logic
 - Integration tests for adapters
-- Minimum 80% code coverage
+- Minimum 95% code coverage
 - Tests must be deterministic (no flaky tests)
 
 ## Code Quality
