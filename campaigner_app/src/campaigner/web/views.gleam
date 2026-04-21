@@ -110,8 +110,9 @@ pub fn render_chat(vm: ChatViewModel) -> Element(msg) {
         div([class("terminal-line")], [
           span([class("terminal-prompt")], [text("$ ")]),
           span([class("terminal-command")], [
-            text("cd "),
+            text("cd \""),
             html.code([], [text(vm.vault_path)]),
+            text("\""),
           ]),
         ]),
         div([class("terminal-line")], [

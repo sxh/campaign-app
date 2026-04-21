@@ -9,6 +9,17 @@ pub fn css() -> String {
       --gray: #6c757d;
       --border: #dee2e6;
       --error: #dc3545;
+      
+      /* Terminal colors */
+      --terminal-bg: #1e1e1e;
+      --terminal-header-bg: #2d2d2d;
+      --terminal-border: #404040;
+      --terminal-text: #f0f0f0;
+      --terminal-muted: #aaa;
+      --terminal-prompt: #4caf50;
+      --terminal-path: #4fc3f7;
+      --terminal-command: #ff9800;
+      --terminal-font: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
     }
 
     body {
@@ -218,7 +229,7 @@ pub fn css() -> String {
 
     /* Terminal emulator styles */
     .terminal-container {
-      background: #1e1e1e;
+      background: var(--terminal-bg);
       border-radius: 8px;
       overflow: hidden;
       margin: 20px 0 30px 0;
@@ -226,36 +237,36 @@ pub fn css() -> String {
     }
 
     .terminal-header {
-      background: #2d2d2d;
+      background: var(--terminal-header-bg);
       padding: 12px 20px;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      border-bottom: 1px solid #404040;
+      border-bottom: 1px solid var(--terminal-border);
     }
 
     .terminal-title {
-      color: #f0f0f0;
+      color: var(--terminal-text);
       font-weight: bold;
       font-size: 0.9rem;
     }
 
     .terminal-path {
-      color: #aaa;
+      color: var(--terminal-muted);
       font-size: 0.8rem;
     }
 
     .terminal-path code {
-      background: #3a3a3a;
-      color: #4fc3f7;
+      background: var(--terminal-header-bg);
+      color: var(--terminal-path);
       padding: 2px 6px;
       border-radius: 3px;
-      font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+      font-family: var(--terminal-font);
     }
 
     .terminal-body {
       padding: 20px;
-      font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+      font-family: var(--terminal-font);
       font-size: 0.9rem;
       line-height: 1.5;
       min-height: 120px;
@@ -266,23 +277,23 @@ pub fn css() -> String {
     }
 
     .terminal-prompt {
-      color: #4caf50;
+      color: var(--terminal-prompt);
       font-weight: bold;
       margin-right: 8px;
     }
 
     .terminal-command {
-      color: #f0f0f0;
+      color: var(--terminal-text);
     }
 
     .terminal-output {
-      color: #aaa;
+      color: var(--terminal-muted);
       font-style: italic;
     }
 
     .terminal-command code {
-      background: #3a3a3a;
-      color: #ff9800;
+      background: var(--terminal-header-bg);
+      color: var(--terminal-command);
       padding: 1px 4px;
       border-radius: 2px;
     }
