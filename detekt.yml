@@ -6,6 +6,11 @@ build:
   weights:
     complexity: 2
 
+naming:
+  FunctionNaming:
+    active: true
+    ignoreAnnotated: ['Composable']
+
 style:
   MaxLineLength:
     active: true

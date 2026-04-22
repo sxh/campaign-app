@@ -1,26 +1,33 @@
 package com.example
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Text
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
+import androidx.compose.desktop.ui.tooling.preview.Preview
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
+import androidx.compose.ui.window.rememberWindowState
+import com.example.ui.terminal.TerminalState
+import com.example.ui.terminal.TerminalView
 
 fun main() = application {
     Window(
         onCloseRequest = ::exitApplication,
-        title = "Hello Compose"
+        title = "Campaign Terminal",
+        state = rememberWindowState()
     ) {
-        MaterialTheme {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                Text("Hello, Compose Desktop!")
-            }
-        }
+        App()
     }
+}
+
+@Composable
+@Preview
+fun App() {
+    val state = remember { TerminalState() }
+
+    TerminalView(
+        state = state,
+        onCommand = { command ->
+            state.appendOutput("Executing: $command")
+        }
+    )
 }
