@@ -14,7 +14,6 @@ class PtyProcessManager {
     private var process: Process? = null
     private var inputReader: Thread? = null
     private var errorReader: Thread? = null
-    private var outputWriter: Thread? = null
     private var processMonitor: Thread? = null
     private var savedAttributes: Attributes? = null
     private var outputHandler: ProcessOutputHandler? = null
@@ -89,10 +88,6 @@ class PtyProcessManager {
             }
         }.apply { start() }
 
-        outputWriter = Thread {
-            writeToStream(outputStream)
-        }.apply { start() }
-
         processMonitor = Thread {
             process?.waitFor()
             outputHandler?.onProcessStopped(process?.exitValue())
@@ -111,26 +106,6 @@ class PtyProcessManager {
         }
     }
 
-    private fun writeToStream(stream: OutputStream?) {
-        val reader = terminal?.reader()
-        val writer = stream
-        while (!Thread.currentThread().isInterrupted) {
-            val char = reader?.read() ?: -1
-            if (char == -1) break
-            when (char) {
-                '\n'.code -> {
-                    writer?.write('\n'.code)
-                    writer?.flush()
-                }
-                '\r'.code -> { }
-                else -> {
-                    writer?.write(char)
-                    writer?.flush()
-                }
-            }
-        }
-    }
-
     fun writeToProcess(input: String) {
         try {
             process?.outputStream?.write(input.toByteArray())
@@ -145,7 +120,6 @@ class PtyProcessManager {
     fun stop() {
         inputReader?.interrupt()
         errorReader?.interrupt()
-        outputWriter?.interrupt()
         processMonitor?.interrupt()
 
         process?.let { proc ->
@@ -167,7 +141,6 @@ class PtyProcessManager {
         process = null
         inputReader = null
         errorReader = null
-        outputWriter = null
         processMonitor = null
     }
 

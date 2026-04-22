@@ -53,9 +53,11 @@ fun TerminalView(
         if (processManager != null) {
             state.setStatus(TerminalStatus.Connecting)
             runInterruptible(Dispatchers.IO) {
+                val home = System.getProperty("user.home")
+                val vaultPath = "$home/Library/Mobile Documents/iCloud~md~obsidian/Documents/CthulhuVault"
                 val success = processManager.start(
                     command = listOf("/bin/bash", "-i"),
-                    workingDirectory = System.getProperty("user.dir"),
+                    workingDirectory = vaultPath,
                     outputHandler = createOutputHandler(state)
                 )
                 if (success) {
