@@ -31,6 +31,12 @@ class TerminalState {
 
     var scrollOffset by mutableIntStateOf(0)
 
+    var status by mutableStateOf(TerminalStatus.Disconnected)
+        private set
+
+    var statusMessage by mutableStateOf("")
+        private set
+
     private val commandHistory = mutableListOf<String>()
     private var historyIndex = -1
     private var historySearchInput = ""
@@ -73,6 +79,11 @@ class TerminalState {
 
     fun clearScreen() {
         _lines.clear()
+    }
+
+    fun setStatus(newStatus: TerminalStatus, message: String = "") {
+        status = newStatus
+        statusMessage = message
     }
 
     fun appendOutput(text: String) {

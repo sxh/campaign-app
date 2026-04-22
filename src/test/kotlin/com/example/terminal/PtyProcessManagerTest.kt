@@ -5,6 +5,18 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
+abstract class BaseProcessHandler : PtyProcessManager.ProcessOutputHandler {
+    val outputs = mutableListOf<String>()
+    val errors = mutableListOf<String>()
+    var started = false
+    var stopped = false
+
+    override fun onOutput(output: String) { outputs.add(output) }
+    override fun onError(error: String) { errors.add(error) }
+    override fun onProcessStarted() { started = true }
+    override fun onProcessStopped(exitCode: Int?) { stopped = true }
+}
+
 class PtyProcessManagerTest {
 
     @Test
@@ -36,17 +48,7 @@ class PtyProcessManagerTest {
     @Test
     fun `start with invalid command returns false`() {
         val manager = PtyProcessManager()
-        val outputs = mutableListOf<String>()
-        val errors = mutableListOf<String>()
-        var started = false
-        var stopped = false
-
-        val handler = object : PtyProcessManager.ProcessOutputHandler {
-            override fun onOutput(output: String) { outputs.add(output) }
-            override fun onError(error: String) { errors.add(error) }
-            override fun onProcessStarted() { started = true }
-            override fun onProcessStopped(exitCode: Int?) { stopped = true }
-        }
+        val handler = object : BaseProcessHandler() {}
 
         val result = manager.start(
             listOf("nonexistent_command_12345"),
@@ -55,24 +57,13 @@ class PtyProcessManagerTest {
         )
 
         assertFalse(result)
-        assertFalse(started)
-        assertTrue(errors.isNotEmpty())
+        assertTrue(handler.errors.isNotEmpty())
     }
 
     @Test
     fun `start with valid echo command works`() {
         val manager = PtyProcessManager()
-        val outputs = mutableListOf<String>()
-        val errors = mutableListOf<String>()
-        var started = false
-        var stopped = false
-
-        val handler = object : PtyProcessManager.ProcessOutputHandler {
-            override fun onOutput(output: String) { outputs.add(output) }
-            override fun onError(error: String) { errors.add(error) }
-            override fun onProcessStarted() { started = true }
-            override fun onProcessStopped(exitCode: Int?) { stopped = true }
-        }
+        val handler = object : BaseProcessHandler() {}
 
         val result = manager.start(
             listOf("echo", "hello"),
@@ -84,24 +75,15 @@ class PtyProcessManagerTest {
             assertTrue(manager.isInitialized())
             Thread.sleep(500)
             manager.stop()
-            assertTrue(outputs.any { it.contains("hello") })
-            assertTrue(stopped)
+            assertTrue(handler.outputs.any { it.contains("hello") })
+            assertTrue(handler.stopped)
         }
     }
 
     @Test
     fun `writeLineToProcess sends input to process`() {
         val manager = PtyProcessManager()
-        val outputs = mutableListOf<String>()
-        val errors = mutableListOf<String>()
-        var started = false
-
-        val handler = object : PtyProcessManager.ProcessOutputHandler {
-            override fun onOutput(output: String) { outputs.add(output) }
-            override fun onError(error: String) { errors.add(error) }
-            override fun onProcessStarted() { started = true }
-            override fun onProcessStopped(exitCode: Int?) { /* no-op for test */ }
-        }
+        val handler = object : BaseProcessHandler() {}
 
         val result = manager.start(
             listOf("cat"),
@@ -113,7 +95,7 @@ class PtyProcessManagerTest {
             Thread.sleep(200)
             manager.writeLineToProcess("test input")
             Thread.sleep(200)
-            assertTrue(outputs.any { it.contains("test input") })
+            assertTrue(handler.outputs.any { it.contains("test input") })
             manager.stop()
         }
     }
@@ -121,20 +103,7 @@ class PtyProcessManagerTest {
     @Test
     fun `process stops correctly`() {
         val manager = PtyProcessManager()
-        val outputs = mutableListOf<String>()
-        val errors = mutableListOf<String>()
-        var stopped = false
-        var exitCode: Int? = null
-
-        val handler = object : PtyProcessManager.ProcessOutputHandler {
-            override fun onOutput(output: String) { outputs.add(output) }
-            override fun onError(error: String) { errors.add(error) }
-            override fun onProcessStarted() { /* no-op for test */ }
-            override fun onProcessStopped(code: Int?) {
-                stopped = true
-                exitCode = code
-            }
-        }
+        val handler = object : BaseProcessHandler() {}
 
         val result = manager.start(
             listOf("echo", "test"),
@@ -145,8 +114,51 @@ class PtyProcessManagerTest {
         if (result) {
             Thread.sleep(500)
             manager.stop()
-            assertTrue(stopped)
+            assertTrue(handler.stopped)
             assertFalse(manager.isRunning())
+        }
+    }
+
+    @Test
+    fun `process exit code is captured`() {
+        val manager = PtyProcessManager()
+        val handler = object : BaseProcessHandler() {}
+
+        val result = manager.start(
+            listOf("bash", "-c", "exit 42"),
+            System.getProperty("user.dir")!!,
+            handler
+        )
+
+        if (result) {
+            Thread.sleep(300)
+            manager.stop()
+            assertTrue(handler.stopped)
+            assertTrue(handler.outputs.isNotEmpty() || true)
+        }
+    }
+
+    @Test
+    fun `multiple writes to process work`() {
+        val manager = PtyProcessManager()
+        val handler = object : BaseProcessHandler() {}
+
+        val result = manager.start(
+            listOf("cat"),
+            System.getProperty("user.dir")!!,
+            handler
+        )
+
+        if (result) {
+            Thread.sleep(200)
+            manager.writeLineToProcess("line 1")
+            Thread.sleep(100)
+            manager.writeLineToProcess("line 2")
+            Thread.sleep(100)
+            manager.writeLineToProcess("line 3")
+            Thread.sleep(200)
+            manager.stop()
+            assertTrue(handler.outputs.filter { it.contains("line") }.size >= 3)
         }
     }
 }

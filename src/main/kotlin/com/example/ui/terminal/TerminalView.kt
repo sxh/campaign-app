@@ -2,7 +2,6 @@ package com.example.ui.terminal
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -30,6 +29,7 @@ import kotlinx.coroutines.runInterruptible
 import java.util.concurrent.Executors
 
 private val ioExecutor = Executors.newSingleThreadExecutor()
+private const val MAX_VISIBLE_LINES = 10000
 
 @Composable
 fun TerminalView(
@@ -51,28 +51,46 @@ fun TerminalView(
 
     LaunchedEffect(processManager) {
         if (processManager != null) {
+            state.setStatus(TerminalStatus.Connecting)
             runInterruptible(Dispatchers.IO) {
-                processManager.start(
+                val success = processManager.start(
                     command = listOf("/bin/bash", "-i"),
                     workingDirectory = System.getProperty("user.dir"),
                     outputHandler = createOutputHandler(state)
                 )
+                if (success) {
+                    state.setStatus(TerminalStatus.Connected)
+                } else {
+                    state.setStatus(TerminalStatus.Error, "Failed to start process")
+                }
             }
+        } else {
+            state.setStatus(TerminalStatus.Disconnected)
         }
     }
 
-    Box(
+    Column(
         modifier = modifier
             .background(TerminalColors.Background)
             .border(1.dp, TerminalColors.Border)
-            .focusRequester(focusRequester)
-            .onKeyEvent { event ->
-                KeyboardHandler.handleKeyEvent(event, state) { command ->
-                    handleCommand(command, state, processManager, onCommand)
-                }
-            }
     ) {
-        TerminalContent(state, scrollState)
+        TerminalStatusBar(
+            status = state.status,
+            statusMessage = state.statusMessage
+        )
+
+        androidx.compose.foundation.layout.Box(
+            modifier = Modifier
+                .weight(1f)
+                .focusRequester(focusRequester)
+                .onKeyEvent { event ->
+                    KeyboardHandler.handleKeyEvent(event, state) { command ->
+                        handleCommand(command, state, processManager, onCommand)
+                    }
+                }
+        ) {
+            TerminalContent(state, scrollState)
+        }
     }
 }
 
@@ -81,13 +99,19 @@ private fun TerminalContent(
     state: TerminalState,
     scrollState: androidx.compose.foundation.ScrollState
 ) {
+    val visibleLines = if (state.lines.size > MAX_VISIBLE_LINES) {
+        state.lines.takeLast(MAX_VISIBLE_LINES)
+    } else {
+        state.lines
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(8.dp)
             .verticalScroll(scrollState)
     ) {
-        state.lines.forEach { line ->
+        visibleLines.forEach { line ->
             TerminalLineContent(line)
         }
 
@@ -121,6 +145,7 @@ private fun handleCommand(
         command == "clear" -> state.clearScreen()
         command == "exit" -> {
             processManager?.stop()
+            state.setStatus(TerminalStatus.Disconnected)
             onCommand(command)
         }
         processManager?.isRunning() == true -> {
@@ -142,10 +167,11 @@ private fun createOutputHandler(state: TerminalState) = object : PtyProcessManag
     }
 
     override fun onProcessStarted() {
-        state.appendOutput("Process started.\n")
+        state.setStatus(TerminalStatus.Connected)
     }
 
     override fun onProcessStopped(exitCode: Int?) {
+        state.setStatus(TerminalStatus.Disconnected, "Process exited: $exitCode")
         state.appendOutput("Process exited with code: $exitCode\n")
     }
 }
@@ -166,7 +192,7 @@ private fun TerminalLineContent(line: TerminalLine) {
         LineType.Output -> TerminalColors.Text
         LineType.Input -> TerminalColors.Command
         LineType.Prompt -> TerminalColors.Prompt
-        LineType.Error -> TerminalColors.MutedText
+        LineType.Error -> TerminalColors.Error
     }
 
     Text(
@@ -177,4 +203,3 @@ private fun TerminalLineContent(line: TerminalLine) {
         modifier = Modifier.padding(vertical = 1.dp)
     )
 }
-

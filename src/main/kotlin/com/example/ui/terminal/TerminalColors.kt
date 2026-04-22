@@ -13,4 +13,8 @@ object TerminalColors {
     val Command = Color(0xFFff9800)
     val Cursor = Color(0xFFf0f0f0)
     val Selection = Color(0x405a5ef0)
+    val Success = Color(0xFF4caf50)
+    val Error = Color(0xFFf44336)
+    val StatusBarBackground = Color(0xFF2d2d2d)
+    val Warning = Color(0xFFff9800)
 }
