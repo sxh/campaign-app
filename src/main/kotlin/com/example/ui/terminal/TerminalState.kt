@@ -18,6 +18,7 @@ enum class LineType {
     Error
 }
 
+@Suppress("TooManyFunctions")
 class TerminalState {
     private val _lines = mutableStateListOf<TerminalLine>()
     val lines: List<TerminalLine> get() = _lines
@@ -29,6 +30,50 @@ class TerminalState {
         private set
 
     var scrollOffset by mutableIntStateOf(0)
+
+    private val commandHistory = mutableListOf<String>()
+    private var historyIndex = -1
+    private var historySearchInput = ""
+
+    fun navigateHistoryUp() {
+        if (commandHistory.isEmpty()) return
+        
+        if (historyIndex == -1) {
+            historySearchInput = currentInput
+        }
+        
+        if (historyIndex < commandHistory.size - 1) {
+            historyIndex++
+            currentInput = commandHistory[commandHistory.size - 1 - historyIndex]
+            cursorPosition = currentInput.length
+        }
+    }
+
+    fun navigateHistoryDown() {
+        if (historyIndex == -1) return
+        
+        if (historyIndex > 0) {
+            historyIndex--
+            currentInput = commandHistory[commandHistory.size - 1 - historyIndex]
+            cursorPosition = currentInput.length
+        } else {
+            historyIndex = -1
+            currentInput = historySearchInput
+            cursorPosition = currentInput.length
+        }
+    }
+
+    private fun addToHistory(command: String) {
+        if (command.isNotBlank() && (commandHistory.isEmpty() || commandHistory.last() != command)) {
+            commandHistory.add(command)
+        }
+        historyIndex = -1
+        historySearchInput = ""
+    }
+
+    fun clearScreen() {
+        _lines.clear()
+    }
 
     fun appendOutput(text: String) {
         _lines.add(TerminalLine(text, LineType.Output))
@@ -88,6 +133,7 @@ class TerminalState {
 
     fun submitInput(): String {
         val input = currentInput
+        addToHistory(input)
         appendInput(input)
         currentInput = ""
         cursorPosition = 0

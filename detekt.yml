@@ -6,6 +6,14 @@ build:
   weights:
     complexity: 2
 
+complexity:
+  LongMethod:
+    active: true
+    threshold: 80
+  CyclomaticComplexMethod:
+    active: true
+    threshold: 20
+
 naming:
   FunctionNaming:
     active: true

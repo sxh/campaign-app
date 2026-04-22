@@ -135,4 +135,131 @@ class TerminalStateTest {
         assertEquals(1, state.lines.size)
         assertEquals("$ ls", state.lines[0].content)
     }
+
+    @Test
+    fun `navigateHistoryUp retrieves previous command`() {
+        val state = TerminalState()
+        state.insertChar('c')
+        state.insertChar('m')
+        state.submitInput()
+        state.insertChar('d')
+        state.insertChar('a')
+        state.submitInput()
+        state.navigateHistoryUp()
+        assertEquals("da", state.currentInput)
+    }
+
+    @Test
+    fun `navigateHistoryDown returns current input when at start`() {
+        val state = TerminalState()
+        state.insertChar('c')
+        state.insertChar('m')
+        state.submitInput()
+        state.navigateHistoryUp()
+        assertEquals("cm", state.currentInput)
+        state.navigateHistoryDown()
+        assertEquals("", state.currentInput)
+    }
+
+    @Test
+    fun `navigateHistoryUp wraps to oldest command`() {
+        val state = TerminalState()
+        state.insertChar('f')
+        state.insertChar('i')
+        state.insertChar('r')
+        state.insertChar('s')
+        state.insertChar('t')
+        state.submitInput()
+        state.insertChar('s')
+        state.insertChar('e')
+        state.insertChar('c')
+        state.insertChar('o')
+        state.insertChar('n')
+        state.submitInput()
+        state.navigateHistoryUp()
+        state.navigateHistoryUp()
+        assertEquals("first", state.currentInput)
+    }
+
+    @Test
+    fun `submitInput adds command to history`() {
+        val state = TerminalState()
+        state.insertChar('e')
+        state.insertChar('c')
+        state.insertChar('h')
+        state.insertChar('o')
+        state.submitInput()
+        state.navigateHistoryUp()
+        assertEquals("echo", state.currentInput)
+    }
+
+    @Test
+    fun `clearScreen removes all lines`() {
+        val state = TerminalState()
+        state.appendOutput("line 1")
+        state.appendOutput("line 2")
+        state.appendOutput("line 3")
+        assertEquals(3, state.lines.size)
+        state.clearScreen()
+        assertEquals(0, state.lines.size)
+    }
+
+    @Test
+    fun `navigateHistoryDown restores current input`() {
+        val state = TerminalState()
+        state.insertChar('w')
+        state.insertChar('o')
+        state.insertChar('r')
+        state.insertChar('k')
+        state.submitInput()
+        state.insertChar('p')
+        state.insertChar('l')
+        state.insertChar('a')
+        state.insertChar('y')
+        state.navigateHistoryUp()
+        assertEquals("work", state.currentInput)
+        state.navigateHistoryDown()
+        assertEquals("play", state.currentInput)
+    }
+
+    @Test
+    fun `submitInput does not add consecutive duplicate commands to history`() {
+        val state = TerminalState()
+        state.insertChar('t')
+        state.insertChar('e')
+        state.insertChar('s')
+        state.insertChar('t')
+        state.submitInput()
+        state.insertChar('t')
+        state.insertChar('e')
+        state.insertChar('s')
+        state.insertChar('t')
+        state.submitInput()
+        state.insertChar('a')
+        state.submitInput()
+        state.insertChar('t')
+        state.insertChar('e')
+        state.insertChar('s')
+        state.insertChar('t')
+        state.submitInput()
+        state.navigateHistoryUp()
+        assertEquals("test", state.currentInput)
+        state.navigateHistoryUp()
+        assertEquals("a", state.currentInput)
+    }
+
+    @Test
+    fun `submitInput adds all different commands to history`() {
+        val state = TerminalState()
+        state.insertChar('c')
+        state.insertChar('m')
+        state.submitInput()
+        state.insertChar('d')
+        state.insertChar('a')
+        state.submitInput()
+        state.insertChar('l')
+        state.insertChar('s')
+        state.submitInput()
+        assertEquals(3, state.lines.size)
+    }
 }

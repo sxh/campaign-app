@@ -26,6 +26,10 @@ dependencies {
     // Logging (required by JLine)
     implementation("org.slf4j:slf4j-api:2.0.9")
 
+    // Coroutines for thread safety
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-swing:1.7.3")
+
     testImplementation(kotlin("test"))
     @OptIn(ExperimentalComposeLibrary::class)
     testImplementation(compose.desktop.uiTestJUnit4)

@@ -24,11 +24,18 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.terminal.PtyProcessManager
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.runInterruptible
+import java.util.concurrent.Executors
+
+private val ioExecutor = Executors.newSingleThreadExecutor()
 
 @Composable
 fun TerminalView(
     modifier: Modifier = Modifier,
     state: TerminalState = remember { TerminalState() },
+    processManager: PtyProcessManager? = null,
     onCommand: (String) -> Unit = {}
 ) {
     val focusRequester = remember { FocusRequester() }
@@ -42,43 +49,104 @@ fun TerminalView(
         scrollState.scrollTo(scrollState.maxValue)
     }
 
+    LaunchedEffect(processManager) {
+        if (processManager != null) {
+            runInterruptible(Dispatchers.IO) {
+                processManager.start(
+                    command = listOf("/bin/bash", "-i"),
+                    workingDirectory = System.getProperty("user.dir"),
+                    outputHandler = createOutputHandler(state)
+                )
+            }
+        }
+    }
+
     Box(
         modifier = modifier
             .background(TerminalColors.Background)
             .border(1.dp, TerminalColors.Border)
             .focusRequester(focusRequester)
             .onKeyEvent { event ->
-                KeyboardHandler.handleKeyEvent(event, state, onCommand)
+                KeyboardHandler.handleKeyEvent(event, state) { command ->
+                    handleCommand(command, state, processManager, onCommand)
+                }
             }
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(8.dp)
-                .verticalScroll(scrollState)
-        ) {
-            state.lines.forEach { line ->
-                TerminalLineContent(line)
-            }
+        TerminalContent(state, scrollState)
+    }
+}
 
-            Row {
-                TerminalPrompt()
-                BasicTextField(
-                    value = state.currentInput,
-                    onValueChange = { },
-                    textStyle = TextStyle(
-                        fontFamily = FontFamily.Monospace,
-                        fontSize = 14.sp,
-                        color = TerminalColors.Text
-                    ),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 2.dp),
-                    readOnly = true,
-                    cursorBrush = SolidColor(TerminalColors.Cursor)
-                )
+@Composable
+private fun TerminalContent(
+    state: TerminalState,
+    scrollState: androidx.compose.foundation.ScrollState
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(8.dp)
+            .verticalScroll(scrollState)
+    ) {
+        state.lines.forEach { line ->
+            TerminalLineContent(line)
+        }
+
+        Row {
+            TerminalPrompt()
+            BasicTextField(
+                value = state.currentInput,
+                onValueChange = { },
+                textStyle = TextStyle(
+                    fontFamily = FontFamily.Monospace,
+                    fontSize = 14.sp,
+                    color = TerminalColors.Text
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 2.dp),
+                readOnly = true,
+                cursorBrush = SolidColor(TerminalColors.Cursor)
+            )
+        }
+    }
+}
+
+private fun handleCommand(
+    command: String,
+    state: TerminalState,
+    processManager: PtyProcessManager?,
+    onCommand: (String) -> Unit
+) {
+    when {
+        command == "clear" -> state.clearScreen()
+        command == "exit" -> {
+            processManager?.stop()
+            onCommand(command)
+        }
+        processManager?.isRunning() == true -> {
+            ioExecutor.submit {
+                processManager.writeLineToProcess(command)
             }
         }
+        else -> onCommand(command)
+    }
+}
+
+private fun createOutputHandler(state: TerminalState) = object : PtyProcessManager.ProcessOutputHandler {
+    override fun onOutput(output: String) {
+        state.appendOutput(output)
+    }
+
+    override fun onError(error: String) {
+        state.appendError(error)
+    }
+
+    override fun onProcessStarted() {
+        state.appendOutput("Process started.\n")
+    }
+
+    override fun onProcessStopped(exitCode: Int?) {
+        state.appendOutput("Process exited with code: $exitCode\n")
     }
 }
 
@@ -109,3 +177,4 @@ private fun TerminalLineContent(line: TerminalLine) {
         modifier = Modifier.padding(vertical = 1.dp)
     )
 }
+
