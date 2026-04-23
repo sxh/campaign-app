@@ -6,36 +6,41 @@ import lustre/element/html
 import opencode_session.{type OpenCodeState, Error, Loading, Ready}
 
 pub type Model {
-  Model(state: OpenCodeState)
+  Model(state: OpenCodeState, vault_encoded: String)
 }
 
 pub type Msg {
-  SessionReady(slug: String)
+  SessionReady(session_id: String)
   SessionError(error: String)
 }
 
-pub fn init(_flags: Nil) -> #(Model, Effect(Msg)) {
+pub type InitFlags {
+  InitFlags(vault_encoded: String, vault_path: String)
+}
+
+pub fn init(flags: InitFlags) -> #(Model, Effect(Msg)) {
   let create_url = opencode_session.session_create_url()
 
   let effect =
     effect.from(fn(dispatch) {
       electron_preload.create_session_and_dispatch(
         create_url,
-        fn(slug) { dispatch(SessionReady(slug)) },
+        flags.vault_path,
+        fn(id) { dispatch(SessionReady(id)) },
         fn(msg) { dispatch(SessionError(msg)) },
       )
     })
 
-  #(Model(Loading), effect)
+  #(Model(Loading, flags.vault_encoded), effect)
 }
 
-pub fn update(_model: Model, msg: Msg) -> #(Model, Effect(Msg)) {
+pub fn update(model: Model, msg: Msg) -> #(Model, Effect(Msg)) {
   case msg {
-    SessionReady(slug) -> {
-      let url = opencode_session.session_iframe_url(slug)
-      #(Model(Ready(url)), effect.none())
+    SessionReady(id) -> {
+      let url = opencode_session.session_iframe_url(model.vault_encoded, id)
+      #(Model(Ready(url), model.vault_encoded), effect.none())
     }
-    SessionError(e) -> #(Model(Error(e)), effect.none())
+    SessionError(e) -> #(Model(Error(e), model.vault_encoded), effect.none())
   }
 }
 
