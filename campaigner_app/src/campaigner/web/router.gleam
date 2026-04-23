@@ -1,3 +1,4 @@
+import campaigner/config
 import campaigner/services/dashboard_service as service
 import campaigner/vault
 import campaigner/web/views
@@ -31,8 +32,18 @@ pub fn router(
   vault_path: vault.VaultPath,
   ctx: vault.Context,
 ) -> Response(BytesTree) {
+  let default_config = config.from_vault_path(vault_path)
+  router_with_config(req, vault_path, ctx, default_config)
+}
+
+pub fn router_with_config(
+  req: Request(BitArray),
+  vault_path: vault.VaultPath,
+  ctx: vault.Context,
+  config: config.Config,
+) -> Response(BytesTree) {
   case parse_route(request.path_segments(req)) {
-    Dashboard -> serve_dashboard(vault_path, ctx)
+    Dashboard -> serve_dashboard(vault_path, ctx, config)
     Chat -> serve_chat(req, vault_path, ctx)
     NotFound -> serve_404()
   }
@@ -41,10 +52,11 @@ pub fn router(
 pub fn serve_dashboard(
   vault_path: vault.VaultPath,
   ctx: vault.Context,
+  config: config.Config,
 ) -> Response(BytesTree) {
-  case service.prepare_dashboard_data(vault_path, ctx) {
+  case service.prepare_dashboard_with_sidebar(vault_path, ctx, config) {
     Ok(data) -> {
-      service.render_dashboard_page(data)
+      service.render_sidebar_page(data)
       |> element.to_string
       |> bytes_tree.from_string
       |> response.set_body(response.new(200), _)

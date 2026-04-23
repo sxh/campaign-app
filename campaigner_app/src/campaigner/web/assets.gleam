@@ -297,5 +297,47 @@ pub fn css() -> String {
       padding: 1px 4px;
       border-radius: 2px;
     }
+
+    /* Split layout for dashboard with OpenCode sidebar */
+    .split-container {
+      display: flex;
+      height: 100vh;
+      margin: 0;
+      padding: 0;
+    }
+
+    .split-left {
+      flex: 1;
+      overflow: auto;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+
+    .split-right {
+      flex: 1;
+      overflow: hidden;
+      background: var(--white);
+    }
+
+    .split-divider {
+      width: 1px;
+      background: var(--border);
+    }
+
+    .openframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      display: block;
+    }
+
+    .sidebar-loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      color: var(--gray);
+      font-size: 0.9rem;
+    }
   "
 }

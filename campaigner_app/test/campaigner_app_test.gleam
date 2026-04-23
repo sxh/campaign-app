@@ -468,7 +468,7 @@ pub fn config_env_test() {
   let assert Ok(cfg2) = res2
   vault.vault_path_to_string(cfg2.vault_path)
   |> should.equal(
-    "/Users/steve.hayes/Library/Mobile Documents/iCloud~md~obsidian/Documents/CthulhuVault/",
+    "/Users/steve.hayes/Library/Mobile Documents/iCloud~md~obsidian/Documents/ForgottenRealmsVault/",
   )
 }
 
@@ -709,7 +709,7 @@ pub fn system_init_success_test() {
   let res =
     system.init_with_config_loader(logger, fn() {
       let assert Ok(path) = vault.vault_path_from_string("/vault")
-      Ok(config.Config(vault_path: path))
+      Ok(config.from_vault_path(path))
     })
   res |> should.be_ok()
 }
@@ -804,7 +804,7 @@ pub fn system_start_with_deps_success_test() {
   let logger = factories.logger_silent()
   let load_conf = fn() {
     let assert Ok(path) = vault.vault_path_from_string("/vault")
-    Ok(config.Config(vault_path: path))
+    Ok(config.from_vault_path(path))
   }
   let res = system.start_with_dependencies(8001, logger, load_conf)
   res |> should.be_ok()
@@ -843,8 +843,9 @@ pub fn system_handle_request_error_test() {
 pub fn system_create_route_handler_execution_test() {
   let ctx = factories.context()
   let assert Ok(vault_path) = vault.vault_path_from_string("/vault")
+  let cfg = config.from_vault_path(vault_path)
   let handler =
-    system.create_route_handler_with_reader(vault_path, ctx, fn(r) {
+    system.create_route_handler_with_reader(cfg, ctx, fn(r) {
       Ok(request.set_body(r, bit_array.from_string("")))
     })
   let req = request.new() |> utils.coerce

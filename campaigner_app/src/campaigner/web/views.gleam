@@ -1,9 +1,9 @@
 import campaigner/web/assets
-import lustre/attribute.{class, href, method, name, placeholder, type_}
+import lustre/attribute.{class, href, method, name, placeholder, src, type_}
 import lustre/element.{type Element}
 import lustre/element/html.{
-  a, body, button, div, form, h1, h2, head, html, main, p, script, section, span,
-  text, textarea,
+  a, body, button, div, form, h1, h2, head, html, iframe, main, p, script,
+  section, span, text, textarea,
 }
 
 pub type DashboardViewModel {
@@ -15,6 +15,13 @@ pub type DashboardViewModel {
     image_files: String,
     notes_message: String,
     chars_message: String,
+  )
+}
+
+pub type SidebarViewModel {
+  SidebarViewModel(
+    dashboard: DashboardViewModel,
+    opencode_url: String,
   )
 }
 
@@ -183,5 +190,29 @@ pub fn render_404() -> Element(msg) {
     h1([], [text("404 - Not Found")]),
     p([], [text("The page you are looking for does not exist.")]),
     a([href("/")], [text("Return to Dashboard")]),
+  ])
+}
+
+pub fn render_dashboard_with_sidebar(vm: SidebarViewModel) -> Element(msg) {
+  html([], [
+    head([], [
+      html.title([], "Campaigner Dashboard"),
+      html.meta([
+        attribute.name("viewport"),
+        attribute.content("width=device-width, initial-scale=1"),
+      ]),
+      html.style([], assets.css()),
+    ]),
+    body([], [
+      div([class("split-container")], [
+        div([class("split-left")], [
+          render_dashboard(vm.dashboard),
+        ]),
+        div([class("split-divider")], []),
+        div([class("split-right")], [
+          iframe([src(vm.opencode_url), class("openframe")]),
+        ]),
+      ]),
+    ]),
   ])
 }

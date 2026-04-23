@@ -1,3 +1,4 @@
+import campaigner/config
 import campaigner/ports/chat_engine.{EngineError}
 import campaigner/vault
 import campaigner/web/views
@@ -8,12 +9,27 @@ pub type DashboardData {
   DashboardData(stats: vault.Stats)
 }
 
+pub type SidebarData {
+  SidebarData(stats: vault.Stats, opencode_url: String)
+}
+
 pub fn prepare_dashboard_data(
   vault_path: vault.VaultPath,
   ctx: vault.Context,
 ) -> Result(DashboardData, vault.VaultError) {
   case vault.gather_stats(vault_path, ctx) {
     Ok(stats) -> Ok(DashboardData(stats))
+    Error(err) -> Error(err)
+  }
+}
+
+pub fn prepare_dashboard_with_sidebar(
+  vault_path: vault.VaultPath,
+  ctx: vault.Context,
+  config: config.Config,
+) -> Result(SidebarData, vault.VaultError) {
+  case vault.gather_stats(vault_path, ctx) {
+    Ok(stats) -> Ok(SidebarData(stats: stats, opencode_url: config.build_opencode_url(config)))
     Error(err) -> Error(err)
   }
 }
@@ -43,6 +59,14 @@ pub fn render_dashboard_page(data: DashboardData) -> Element(msg) {
   to_dashboard_view_model(data.stats)
   |> views.render_dashboard
   |> views.layout("Campaigner Dashboard", _)
+}
+
+pub fn render_sidebar_page(data: SidebarData) -> Element(msg) {
+  let vm = views.SidebarViewModel(
+    dashboard: to_dashboard_view_model(data.stats),
+    opencode_url: data.opencode_url,
+  )
+  views.render_dashboard_with_sidebar(vm)
 }
 
 pub fn render_chat_page(vm: views.ChatViewModel) -> Element(msg) {

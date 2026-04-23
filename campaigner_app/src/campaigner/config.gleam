@@ -3,7 +3,11 @@ import campaigner/vault
 import gleam/dynamic.{type Dynamic}
 
 pub type Config {
-  Config(vault_path: vault.VaultPath)
+  Config(
+    vault_path: vault.VaultPath,
+    opencode_hostname: String,
+    opencode_port: Int,
+  )
 }
 
 pub type ConfigError {
@@ -43,7 +47,11 @@ pub fn load_with_env(
   }
 
   case vault.vault_path_from_string(path_str) {
-    Ok(vault_path) -> Ok(Config(vault_path: vault_path))
+    Ok(vault_path) -> Ok(Config(
+      vault_path: vault_path,
+      opencode_hostname: defaults.opencode_hostname,
+      opencode_port: defaults.opencode_port,
+    ))
     Error(err) -> Error(InvalidConfigPath(string_from_vault_error(err)))
   }
 }
@@ -63,4 +71,21 @@ pub fn is_valid_vault_path_format(path: String) -> Bool {
     "" -> False
     _ -> True
   }
+}
+
+pub fn build_opencode_url(config: Config) -> String {
+  let encoded = defaults.opencode_vault_encoded
+  let port_str = int_to_string(config.opencode_port)
+  "http://" <> config.opencode_hostname <> ":" <> port_str <> "/" <> encoded <> "/session"
+}
+
+@external(erlang, "erlang", "integer_to_binary")
+fn int_to_string(i: Int) -> String
+
+pub fn from_vault_path(vault_path: vault.VaultPath) -> Config {
+  Config(
+    vault_path: vault_path,
+    opencode_hostname: defaults.opencode_hostname,
+    opencode_port: defaults.opencode_port,
+  )
 }

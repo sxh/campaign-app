@@ -27,9 +27,12 @@ pub fn start_with_dependencies(
 ) -> Result(Nil, String) {
   case init_with_config_loader(logger, load_config) {
     Ok(#(cfg, ctx)) -> {
+      let vp = case cfg {
+        config.Config(vault_path: vp, opencode_hostname: _, opencode_port: _) -> vp
+      }
       logger.info("Starting Campaigner App on port " <> int_to_string(port), [])
 
-      mist.new(create_route_handler(cfg.vault_path, ctx))
+      mist.new(create_route_handler(vp, ctx))
       |> mist.port(port)
       |> mist.start
       |> result.replace(Nil)
@@ -73,19 +76,29 @@ pub fn init_with_config_loader(
 }
 
 pub fn create_route_handler(vault_path: vault.VaultPath, ctx: vault.Context) {
-  create_route_handler_with_reader(vault_path, ctx, mist.read_body(
+  let cfg = config.from_vault_path(vault_path)
+  create_route_handler_with_config(cfg, ctx, mist.read_body(
     _,
     1024 * 1024,
   ))
 }
 
-pub fn create_route_handler_with_reader(
-  vault_path: vault.VaultPath,
+pub fn create_route_handler_with_config(
+  cfg: config.Config,
   ctx: vault.Context,
   read_body: fn(request.Request(mist.Connection)) ->
     Result(request.Request(BitArray), any),
 ) {
-  fn(req) { handle_request(req, vault_path, ctx, read_body) }
+  fn(req) { handle_request_with_config(req, cfg, ctx, read_body) }
+}
+
+pub fn create_route_handler_with_reader(
+  config: config.Config,
+  ctx: vault.Context,
+  read_body: fn(request.Request(mist.Connection)) ->
+    Result(request.Request(BitArray), any),
+) {
+  fn(req) { handle_request_with_config(req, config, ctx, read_body) }
 }
 
 pub fn handle_request(
@@ -94,9 +107,19 @@ pub fn handle_request(
   ctx: vault.Context,
   read_body: fn(request.Request(c)) -> Result(request.Request(BitArray), any),
 ) -> response.Response(mist.ResponseData) {
+  let cfg = config.from_vault_path(vault_path)
+  handle_request_with_config(req, cfg, ctx, read_body)
+}
+
+pub fn handle_request_with_config(
+  req: request.Request(c),
+  config: config.Config,
+  ctx: vault.Context,
+  read_body: fn(request.Request(c)) -> Result(request.Request(BitArray), any),
+) -> response.Response(mist.ResponseData) {
   case read_body(req) {
     Ok(req) -> {
-      router.router(req, vault_path, ctx)
+      router.router_with_config(req, config.vault_path, ctx, config)
       |> response.map(mist.Bytes)
     }
     Error(_) -> {
@@ -106,7 +129,5 @@ pub fn handle_request(
   }
 }
 
-// Internal helpers to avoid extra dependencies for basic logic
 @external(erlang, "erlang", "integer_to_binary")
 fn int_to_string(i: Int) -> String
-// Removed result_map_error as it's unused
