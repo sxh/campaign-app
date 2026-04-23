@@ -3,7 +3,8 @@ set -e
 
 echo "Running pre-commit checks..."
 
-cd "$(dirname "$0")/campaigner_app"
+PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+cd "$PROJECT_ROOT/campaigner_app"
 echo "Running verification pipeline (lint -> test -> coverage)..."
 make check-coverage
 
