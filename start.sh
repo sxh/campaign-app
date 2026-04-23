@@ -9,5 +9,9 @@ if [ ! -d "node_modules" ]; then
   npm install
 fi
 
+# Clean previous build artifacts to ensure fresh compilation
+echo "Cleaning build artifacts..."
+gleam clean
+
 # Build and start the Electron app
 npm start
