@@ -3,8 +3,8 @@ set -e
 
 echo "Running pre-commit checks..."
 
-# Run the complete verification pipeline
-echo "Running verification pipeline (detekt -> test -> koverVerify)..."
-./gradlew verify
+cd "$(dirname "$0")/campaigner_app"
+echo "Running verification pipeline (lint -> test -> coverage)..."
+make check-coverage
 
 echo "All checks passed!"
