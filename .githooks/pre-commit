@@ -1,11 +1,18 @@
 #!/bin/bash
 set -e
 
-echo "Running pre-commit checks..."
+echo "=== Pre-commit Checks ==="
 
-PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-cd "$PROJECT_ROOT/campaigner_app"
-echo "Running verification pipeline (lint -> test -> coverage)..."
-make check-coverage
+# Lint
+echo "--- Lint (Format Check) ---"
+gleam format --check src test
 
-echo "All checks passed!"
+# Test
+echo "--- Tests ---"
+gleam test
+
+# Coverage
+echo "--- Coverage (95% threshold) ---"
+escript scripts/coverage.escript
+
+echo "=== All checks passed! ==="

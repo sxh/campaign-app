@@ -1,7 +1,13 @@
 #!/bin/bash
-# Start the Campaigner app
-# Note: OpenCode must be running first for the sidebar to work
-# Run: opencode serve --port 14096 --hostname 127.0.0.1 --cors app://obsidian.md
+set -e
 
-cd "$(dirname "$0")/campaigner_app"
-exec gleam run
+echo "=== Building and Starting Campaigner App ==="
+
+# Install dependencies if needed
+if [ ! -d "node_modules" ]; then
+  echo "Installing npm dependencies..."
+  npm install
+fi
+
+# Build and start the Electron app
+npm start
