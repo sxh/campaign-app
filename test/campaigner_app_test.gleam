@@ -10,82 +10,50 @@ pub fn main() -> Nil {
   gleeunit.main()
 }
 
-fn test_vault_path() -> String {
-  "/Users/steve.hayes/Library/Mobile Documents/iCloud~md~obsidian/Documents/ForgottenRealmsVault/"
+fn test_iframe_url() -> String {
+  opencode_session.session_iframe_url(
+    "L1VzZXJzL3N0ZXZlLmhheWVzL0xpYnJhcnkvTW9iaWxlIERvY3VtZW50cy9pQ2xvdWR+bWR+b2JzaWRpYW4vRG9jdW1lbnRzL0ZvcmdvdHRlblJlYWxtc1ZhdWx0",
+  )
 }
 
-fn test_vault_encoded() -> String {
-  "L1VzZXJzL3N0ZXZlLmhheWVzL0xpYnJhcnkvTW9iaWxlIERvY3VtZW50cy9pQ2xvdWR+bWR+b2JzaWRpYW4vRG9jdW1lbnRzL0ZvcmdvdHRlblJlYWxtc1ZhdWx0Lw=="
+pub fn init_stores_opencode_iframe_url_in_model_test() {
+  let expected_url = test_iframe_url()
+  let flags = campaigner_app.InitFlags(expected_url)
+  let #(model, _eff) = campaigner_app.init(flags)
+  model.opencode_iframe_url |> should.equal(expected_url)
 }
 
-fn test_model() -> campaigner_app.Model {
-  campaigner_app.Model(opencode_session.Loading, test_vault_encoded())
-}
-
-pub fn init_returns_loading_model_test() {
-  let flags = campaigner_app.InitFlags(test_vault_encoded(), test_vault_path())
-  let #(model, _eff) = campaigner_app.init(flags, fn(_, _, _, _) { Nil })
-  model.vault_encoded |> should.equal(test_vault_encoded())
-  model.state |> should.equal(opencode_session.Loading)
-}
-
-pub fn update_session_ready_transitions_to_ready_test() {
-  let model = test_model()
-  let result =
-    campaigner_app.update(model, campaigner_app.SessionReady("ses_abc123"))
-  let expected_url =
-    opencode_session.session_iframe_url(test_vault_encoded(), "ses_abc123")
-  result.0.state |> should.equal(opencode_session.Ready(expected_url))
-}
-
-pub fn update_session_error_transitions_to_error_test() {
-  let model = test_model()
-  let result =
-    campaigner_app.update(
-      model,
-      campaigner_app.SessionError("connection failed"),
-    )
-  result.0.state
-  |> should.equal(opencode_session.Error("connection failed"))
-}
-
-pub fn view_loading_shows_loading_text_test() {
-  let model = test_model()
-  let view = campaigner_app.view(model)
-  let html = element.to_string(view)
-  string.contains(html, "Loading opencode...") |> should.be_true
-}
-
-pub fn view_ready_contains_iframe_test() {
-  let model =
-    campaigner_app.Model(
-      opencode_session.Ready("http://example.com/iframe"),
-      test_vault_encoded(),
-    )
+pub fn view_contains_iframe_test() {
+  let model = campaigner_app.Model("http://example.com/iframe")
   let view = campaigner_app.view(model)
   let html = element.to_string(view)
   string.contains(html, "iframe") |> should.be_true
 }
 
-pub fn view_error_shows_error_message_test() {
-  let model =
-    campaigner_app.Model(opencode_session.Error("oops"), test_vault_encoded())
-  let view = campaigner_app.view(model)
-  let html = element.to_string(view)
-  string.contains(html, "Error: oops") |> should.be_true
+pub fn update_noop_returns_model_unchanged_test() {
+  let model = campaigner_app.Model("http://example.com/")
+  let #(updated, _eff) = campaigner_app.update(model, campaigner_app.NoOp)
+  updated.opencode_iframe_url |> should.equal("http://example.com/")
 }
 
-pub fn view_always_has_left_pane_test() {
-  let model = test_model()
+pub fn view_always_has_vault_pane_test() {
+  let model = campaigner_app.Model("http://example.com/")
   let view = campaigner_app.view(model)
   let html = element.to_string(view)
-  string.contains(html, "Left Pane") |> should.be_true
+  string.contains(html, "Vault") |> should.be_true
 }
 
-pub fn test_vault_encoded_matches_vault_path_base64_test() {
-  let actual_path = obsidian_vault.vault_path()
+pub fn vault_encoded_matches_correct_base64_for_vault_path_test() {
+  let path = obsidian_vault.vault_path()
   let expected_encoded =
-    "L1VzZXJzL3N0ZXZlLmhheWVzL0xpYnJhcnkvTW9iaWxlIERvY3VtZW50cy9pQ2xvdWR+bWR+b2JzaWRpYW4vRG9jdW1lbnRzL0ZvcmdvdHRlblJlYWxtc1ZhdWx0Lw=="
-  actual_path |> should.equal(test_vault_path())
-  test_vault_encoded() |> should.equal(expected_encoded)
+    "L1VzZXJzL3N0ZXZlLmhheWVzL0xpYnJhcnkvTW9iaWxlIERvY3VtZW50cy9pQ2xvdWR+bWR+b2JzaWRpYW4vRG9jdW1lbnRzL0ZvcmdvdHRlblJlYWxtc1ZhdWx0"
+  let vault_path_has_no_trailing_slash = !string.ends_with(path, "/")
+  vault_path_has_no_trailing_slash |> should.be_true
+  path
+  |> should.equal(
+    "/Users/steve.hayes/Library/Mobile Documents/iCloud~md~obsidian/Documents/ForgottenRealmsVault",
+  )
+  let expected_url = "http://127.0.0.1:14096/" <> expected_encoded <> "/session"
+  opencode_session.session_iframe_url(expected_encoded)
+  |> should.equal(expected_url)
 }
