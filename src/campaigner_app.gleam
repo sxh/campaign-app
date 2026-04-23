@@ -1,4 +1,3 @@
-import electron_preload
 import lustre/attribute
 import lustre/effect.{type Effect}
 import lustre/element.{type Element}
@@ -18,12 +17,16 @@ pub type InitFlags {
   InitFlags(vault_encoded: String, vault_path: String)
 }
 
-pub fn init(flags: InitFlags) -> #(Model, Effect(Msg)) {
+pub fn init(
+  flags: InitFlags,
+  create_session: fn(String, String, fn(String) -> Nil, fn(String) -> Nil) ->
+    Nil,
+) -> #(Model, Effect(Msg)) {
   let create_url = opencode_session.session_create_url()
 
   let effect =
     effect.from(fn(dispatch) {
-      electron_preload.create_session_and_dispatch(
+      create_session(
         create_url,
         flags.vault_path,
         fn(id) { dispatch(SessionReady(id)) },

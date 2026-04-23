@@ -10,6 +10,9 @@ contextBridge.exposeInMainWorld("opencodeAPI", {
         "x-opencode-directory": directory,
       },
     })
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error(`Server returned ${r.status} ${r.statusText}`);
+        return r.json();
+      })
       .then((d) => d.id),
 });

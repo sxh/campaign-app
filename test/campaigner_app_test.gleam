@@ -24,7 +24,7 @@ fn test_model() -> campaigner_app.Model {
 
 pub fn init_returns_loading_model_test() {
   let flags = campaigner_app.InitFlags(test_vault_encoded(), test_vault_path())
-  let #(model, _eff) = campaigner_app.init(flags)
+  let #(model, _eff) = campaigner_app.init(flags, fn(_, _, _, _) { Nil })
   model.vault_encoded |> should.equal(test_vault_encoded())
   model.state |> should.equal(opencode_session.Loading)
 }

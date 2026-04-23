@@ -6,7 +6,9 @@ import obsidian_vault
 pub fn main() {
   let app =
     lustre.application(
-      campaigner_app.init,
+      fn(flags) {
+        campaigner_app.init(flags, electron_preload.create_session_and_dispatch)
+      },
       campaigner_app.update,
       campaigner_app.view,
     )

@@ -7,7 +7,27 @@ echo "=== Pre-commit Checks ==="
 echo "--- Lint (Format Check) ---"
 gleam format --check src test
 
-# Test
+# Build (JavaScript target) — filter dependency warnings
+echo "--- Build (JavaScript target) ---"
+BUILD_OUTPUT=$(gleam build --target javascript 2>&1)
+PROJECT_WARNINGS=$(echo "$BUILD_OUTPUT" | awk '/^warning:/{w=$0; next} /build\/packages\//{w=""; next} w{print w; w=""}') || true
+if [ -n "$PROJECT_WARNINGS" ]; then
+    echo "ERROR: Warnings in project source code:"
+    echo "$PROJECT_WARNINGS"
+    exit 1
+fi
+
+# Verify all referenced files exist after build
+echo "--- File Verification ---"
+MISSING=0
+[ -f "public/campaigner_app_main.mjs" ] || { echo "MISSING: public/campaigner_app_main.mjs"; MISSING=1; }
+[ -f "public/index.html" ] || { echo "MISSING: public/index.html"; MISSING=1; }
+[ -f "electron/main.cjs" ] || { echo "MISSING: electron/main.cjs"; MISSING=1; }
+[ -f "electron/preload.js" ] || { echo "MISSING: electron/preload.js"; MISSING=1; }
+if [ "$MISSING" -eq 1 ]; then exit 1; fi
+echo "All referenced files exist."
+
+# Test (Erlang target)
 echo "--- Tests ---"
 gleam test
 

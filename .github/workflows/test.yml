@@ -17,7 +17,16 @@ jobs:
           otp-version: "28"
           gleam-version: "1.15.4"
           rebar3-version: "3"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
       - run: gleam deps download
-      - run: gleam test
+      - run: npm ci
       - run: gleam format --check src test
+      - run: gleam test
+      - run: npm run build
+      - run: test -f public/campaigner_app_main.mjs
+      - run: test -f public/index.html
+      - run: test -f electron/main.cjs
+      - run: test -f electron/preload.js
       - run: escript scripts/coverage.escript
