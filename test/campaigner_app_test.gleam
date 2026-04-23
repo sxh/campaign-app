@@ -29,11 +29,18 @@ pub fn update_with_increment_increases_count_test() {
   result.count |> should.equal(1)
 }
 
-pub fn view_returns_html_with_hello_world_test() {
+pub fn view_returns_html_with_left_pane_test() {
   let model = campaigner_app.initial_model(Nil)
   let view = campaigner_app.view(model)
   let html = element.to_string(view)
-  string.contains(html, "Hello, World!") |> should.be_true
+  string.contains(html, "Left Pane") |> should.be_true
+}
+
+pub fn view_returns_html_with_right_pane_test() {
+  let model = campaigner_app.initial_model(Nil)
+  let view = campaigner_app.view(model)
+  let html = element.to_string(view)
+  string.contains(html, "Right Pane") |> should.be_true
 }
 
 pub fn view_returns_html_with_button_test() {
