@@ -1,24 +1,41 @@
-import gleam/int
+import electron_preload
 import lustre/attribute
+import lustre/effect.{type Effect}
 import lustre/element.{type Element}
 import lustre/element/html
-import lustre/event
+import opencode_session.{type OpenCodeState, Error, Loading, Ready}
 
 pub type Model {
-  Model(count: Int)
+  Model(state: OpenCodeState)
 }
 
 pub type Msg {
-  Increment
+  SessionReady(slug: String)
+  SessionError(error: String)
 }
 
-pub fn initial_model(_: Nil) -> Model {
-  Model(count: 0)
+pub fn init(_flags: Nil) -> #(Model, Effect(Msg)) {
+  let create_url = opencode_session.session_create_url()
+
+  let effect =
+    effect.from(fn(dispatch) {
+      electron_preload.create_session_and_dispatch(
+        create_url,
+        fn(slug) { dispatch(SessionReady(slug)) },
+        fn(msg) { dispatch(SessionError(msg)) },
+      )
+    })
+
+  #(Model(Loading), effect)
 }
 
-pub fn update(model: Model, msg: Msg) -> Model {
+pub fn update(_model: Model, msg: Msg) -> #(Model, Effect(Msg)) {
   case msg {
-    Increment -> Model(count: model.count + 1)
+    SessionReady(slug) -> {
+      let url = opencode_session.session_iframe_url(slug)
+      #(Model(Ready(url)), effect.none())
+    }
+    SessionError(e) -> #(Model(Error(e)), effect.none())
   }
 }
 
@@ -32,27 +49,45 @@ pub fn view(model: Model) -> Element(Msg) {
       ]),
     ],
     [
-      html.div(
-        [
-          attribute.styles([
-            #("flex", "1"),
-            #("padding", "16px"),
-            #("border-right", "1px solid #ccc"),
-          ]),
-        ],
-        [
-          html.h1([], [html.text("Left Pane")]),
-          html.p([], [html.text("Count: " <> int.to_string(model.count))]),
-          html.button([event.on_click(Increment)], [html.text("Increment")]),
-        ],
-      ),
-      html.div([attribute.styles([#("flex", "1"), #("padding", "16px")])], [
-        html.h1([], [html.text("Right Pane")]),
-      ]),
+      left_pane(),
+      right_pane(model.state),
     ],
   )
 }
 
-pub fn view_text(model: Model) -> String {
-  "Hello, World! Count: " <> int.to_string(model.count)
+fn left_pane() -> Element(Msg) {
+  html.div(
+    [
+      attribute.styles([
+        #("flex", "1"),
+        #("padding", "16px"),
+        #("border-right", "1px solid #ccc"),
+      ]),
+    ],
+    [
+      html.h1([], [html.text("Left Pane")]),
+      html.p([], [html.text("Placeholder")]),
+    ],
+  )
+}
+
+fn right_pane(state: OpenCodeState) -> Element(Msg) {
+  html.div(
+    [attribute.styles([#("flex", "1"), #("padding", "16px")])],
+    case state {
+      Loading -> [html.h1([], [html.text("Loading opencode...")])]
+      Ready(url) -> [
+        html.iframe([
+          attribute.src(url),
+          attribute.attribute("allow", "clipboard-read; clipboard-write"),
+          attribute.styles([
+            #("width", "100%"),
+            #("height", "100%"),
+            #("border", "none"),
+          ]),
+        ]),
+      ]
+      Error(msg) -> [html.h1([], [html.text("Error: " <> msg)])]
+    },
+  )
 }

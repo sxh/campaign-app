@@ -1,9 +1,13 @@
 *.beam
 *.ez
 /build
+_build/
 erl_crash.dump
 node_modules/
 public/_gleam_modules/
 public/campaigner_app_main.mjs
 coverage.lcov
 test_erl.lcov
+# OS files
+.DS_Store
+Thumbs.db

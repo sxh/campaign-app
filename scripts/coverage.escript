@@ -58,8 +58,8 @@ main(_) ->
   end.
 
 dedupe([]) -> [];
-dedupe([{L, C1}, {L, _C2} | Rest]) ->
-  dedupe([{L, C1} | Rest]);
+dedupe([{L, C1}, {L, C2} | Rest]) ->
+  dedupe([{L, erlang:max(C1, C2)} | Rest]);
 dedupe([H | Rest]) ->
   [H | dedupe(Rest)].
 
