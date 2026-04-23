@@ -4,56 +4,72 @@
 main(_) ->
   cover:start(),
 
-  {ok, _} = cover:compile_beam(campaigner_app),
-  {ok, _} = cover:compile_beam(campaigner_app_test),
+  %% electron_preload is JavaScript-only (Erlang stubs panic), so exclude it
+  SourceModules = [campaigner_app, opencode_session, obsidian_vault],
+  lists:foreach(fun(M) ->
+    {ok, _} = cover:compile_beam(M)
+  end, SourceModules),
 
   TestModules = discover_test_modules(),
   eunit:test(TestModules, [verbose]),
 
-  {ok, Analysis} = cover:analyse(campaigner_app, calls, line),
-
-  ErlangSrcFile = filename:absname(
-    "build/dev/erlang/campaigner_app/_gleam_artefacts/campaigner_app.erl"),
-  {ok, Data} = file:read_file(ErlangSrcFile),
-  ErlLines = binary:split(Data, <<"\n">>, [global]),
-  LineMap = build_map(ErlLines, 1, 0, []),
-
-  Mapped = lists:flatmap(fun({{_Mod, ErlLine}, Calls}) ->
-    case lists:keyfind(ErlLine, 1, LineMap) of
-      {_, GleamLine} -> [{GleamLine, Calls}];
-      false -> []
-    end
-  end, Analysis),
-  Sorted = lists:sort(Mapped),
-  Deduped = dedupe(Sorted),
-
-  TotalLines = length(Deduped),
-  HitLines = length([1 || {_Line, Calls} <- Deduped, Calls > 0]),
-  Percent = (HitLines / TotalLines) * 100,
-
   LcovPath = filename:absname("coverage.lcov"),
   {ok, Fd} = file:open(LcovPath, [write]),
-  file:write(Fd, io_lib:format("SF:~s~n",
-    [filename:absname("src/campaigner_app.gleam")])),
-  lists:foreach(fun({Line, Calls}) ->
-    file:write(Fd, io_lib:format("DA:~p,~p~n", [Line, Calls]))
-  end, Deduped),
-  file:write(Fd, io_lib:format("LF:~p~n", [TotalLines])),
-  file:write(Fd, io_lib:format("LH:~p~n", [HitLines])),
-  file:write(Fd, "end_of_record\n"),
-  file:close(Fd),
 
+  Results = lists:map(fun(Mod) ->
+    {ok, Analysis} = cover:analyse(Mod, calls, line),
+    ErlSrcFile = filename:absname(
+      "build/dev/erlang/campaigner_app/_gleam_artefacts/" ++ atom_to_list(Mod) ++ ".erl"),
+    case file:read_file(ErlSrcFile) of
+      {ok, Data} ->
+        ErlLines = binary:split(Data, <<"\n">>, [global]),
+        LineMap = build_map(ErlLines, 1, 0, []),
+        Mapped = lists:flatmap(fun({{_Mod2, ErlLine}, Calls}) ->
+          case lists:keyfind(ErlLine, 1, LineMap) of
+            {_, GleamLine} -> [{GleamLine, Calls}];
+            false -> []
+          end
+        end, Analysis),
+        Sorted = lists:sort(Mapped),
+        Deduped = dedupe(Sorted),
+        TotalLines = length(Deduped),
+        HitLines = length([1 || {_Line, Calls} <- Deduped, Calls > 0]),
+        GleamSrc = filename:absname("src/" ++ atom_to_list(Mod) ++ ".gleam"),
+        file:write(Fd, io_lib:format("SF:~s~n", [GleamSrc])),
+        lists:foreach(fun({Line, Calls}) ->
+          file:write(Fd, io_lib:format("DA:~p,~p~n", [Line, Calls]))
+        end, Deduped),
+        file:write(Fd, io_lib:format("LF:~p~n", [TotalLines])),
+        file:write(Fd, io_lib:format("LH:~p~n", [HitLines])),
+        file:write(Fd, "end_of_record\n"),
+        io:format("~n--- ~s ---~n", [GleamSrc]),
+        io:format("Total lines: ~p~n", [TotalLines]),
+        io:format("Hit lines: ~p~n", [HitLines]),
+        Pct = (HitLines / TotalLines) * 100,
+        io:format("Coverage: ~.2f~n", [Pct]),
+        {TotalLines, HitLines};
+      {error, _} ->
+        io:format("~n--- ~s ---~n", [filename:absname("src/" ++ atom_to_list(Mod) ++ ".gleam")]),
+        io:format("No Erlang source found, skipping line mapping~n", []),
+        {0, 0}
+    end
+  end, SourceModules),
+
+  file:close(Fd),
   cover:stop(),
 
-  io:format("~n=== Coverage Report ===~n"),
-  io:format("Total lines: ~p~n", [TotalLines]),
-  io:format("Hit lines: ~p~n", [HitLines]),
-  io:format("Coverage: ~.2f%~n", [Percent]),
+  TotalAll = lists:sum([T || {T, _} <- Results]),
+  HitAll = lists:sum([H || {_, H} <- Results]),
+  PercentAll = (HitAll / TotalAll) * 100,
+  io:format("~n=== Overall Coverage ===~n"),
+  io:format("Total lines: ~p~n", [TotalAll]),
+  io:format("Hit lines: ~p~n", [HitAll]),
+  io:format("Coverage: ~.2f~n", [PercentAll]),
 
-  case Percent >= 95.0 of
+  case PercentAll >= 95.0 of
     true -> halt(0);
     false ->
-      io:format("ERROR: Coverage ~.2f% is below 95% threshold~n", [Percent]),
+      io:format("ERROR: Coverage ~.2f is below 95~n", [PercentAll]),
       halt(1)
   end.
 
