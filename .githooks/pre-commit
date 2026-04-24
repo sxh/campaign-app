@@ -17,6 +17,10 @@ if [ -n "$PROJECT_WARNINGS" ]; then
     exit 1
 fi
 
+# Build Erlang target for tests
+echo "--- Build (Erlang target) ---"
+gleam build --target erlang >/dev/null 2>&1
+
 # Verify all referenced files exist after build
 echo "--- File Verification ---"
 MISSING=0

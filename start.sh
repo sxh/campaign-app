@@ -23,6 +23,10 @@ if [ -n "$PROJECT_WARNINGS" ]; then
 fi
 echo "$BUILD_OUTPUT" | tail -1
 
+# Build Erlang target for tests
+echo "Building Erlang..."
+gleam build --target erlang >/dev/null 2>&1
+
 # Build to public/
 npm run build
 
