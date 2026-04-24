@@ -1,10 +1,11 @@
+import gleam/int
 import lustre/attribute
 import lustre/effect.{type Effect}
 import lustre/element.{type Element}
 import lustre/element/html
 
 pub type Model {
-  Model(opencode_iframe_url: String)
+  Model(opencode_iframe_url: String, note_count: Int)
 }
 
 pub type Msg {
@@ -12,11 +13,11 @@ pub type Msg {
 }
 
 pub type InitFlags {
-  InitFlags(opencode_iframe_url: String)
+  InitFlags(opencode_iframe_url: String, note_count: Int)
 }
 
 pub fn init(flags: InitFlags) -> #(Model, Effect(Msg)) {
-  #(Model(flags.opencode_iframe_url), effect.none())
+  #(Model(flags.opencode_iframe_url, flags.note_count), effect.none())
 }
 
 pub fn update(model: Model, _msg: Msg) -> #(Model, Effect(Msg)) {
@@ -33,13 +34,13 @@ pub fn view(model: Model) -> Element(Msg) {
       ]),
     ],
     [
-      vault_pane(),
+      vault_pane(model.note_count),
       opencode_pane(model.opencode_iframe_url),
     ],
   )
 }
 
-fn vault_pane() -> Element(Msg) {
+fn vault_pane(note_count: Int) -> Element(Msg) {
   html.div(
     [
       attribute.styles([
@@ -51,6 +52,14 @@ fn vault_pane() -> Element(Msg) {
     [
       html.h1([], [html.text("Vault")]),
       html.p([], [html.text("Vault management")]),
+      html.p(
+        [
+          attribute.styles([
+            #("font-weight", "bold"),
+          ]),
+        ],
+        [html.text("Notes: " <> int.to_string(note_count))],
+      ),
     ],
   )
 }

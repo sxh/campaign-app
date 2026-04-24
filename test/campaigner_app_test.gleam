@@ -18,29 +18,38 @@ fn test_iframe_url() -> String {
 
 pub fn init_stores_opencode_iframe_url_in_model_test() {
   let expected_url = test_iframe_url()
-  let flags = campaigner_app.InitFlags(expected_url)
+  let flags = campaigner_app.InitFlags(expected_url, 42)
   let #(model, _eff) = campaigner_app.init(flags)
   model.opencode_iframe_url |> should.equal(expected_url)
+  model.note_count |> should.equal(42)
 }
 
 pub fn view_contains_iframe_test() {
-  let model = campaigner_app.Model("http://example.com/iframe")
+  let model = campaigner_app.Model("http://example.com/iframe", 10)
   let view = campaigner_app.view(model)
   let html = element.to_string(view)
   string.contains(html, "iframe") |> should.be_true
 }
 
 pub fn update_noop_returns_model_unchanged_test() {
-  let model = campaigner_app.Model("http://example.com/")
+  let model = campaigner_app.Model("http://example.com/", 5)
   let #(updated, _eff) = campaigner_app.update(model, campaigner_app.NoOp)
   updated.opencode_iframe_url |> should.equal("http://example.com/")
+  updated.note_count |> should.equal(5)
 }
 
 pub fn view_always_has_vault_pane_test() {
-  let model = campaigner_app.Model("http://example.com/")
+  let model = campaigner_app.Model("http://example.com/", 100)
   let view = campaigner_app.view(model)
   let html = element.to_string(view)
   string.contains(html, "Vault") |> should.be_true
+}
+
+pub fn view_displays_note_count_in_vault_pane_test() {
+  let model = campaigner_app.Model("http://example.com/", 87)
+  let view = campaigner_app.view(model)
+  let html = element.to_string(view)
+  string.contains(html, "Notes: 87") |> should.be_true
 }
 
 pub fn vault_encoded_matches_correct_base64_for_vault_path_test() {

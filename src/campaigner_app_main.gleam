@@ -15,7 +15,8 @@ pub fn main() {
   let vault_encoded =
     bit_array.base64_encode(bit_array.from_string(vault_path), False)
   let url = opencode_session.session_iframe_url(vault_encoded)
-  let flags = InitFlags(url)
+  let note_count = obsidian_vault.note_count(vault_path)
+  let flags = InitFlags(url, note_count)
   let assert Ok(_) = lustre.start(app, "#app", flags)
   Nil
 }
