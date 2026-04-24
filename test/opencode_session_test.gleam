@@ -1,5 +1,7 @@
+import gleam/bit_array
 import gleeunit
 import gleeunit/should
+import obsidian_vault
 import opencode_session
 
 pub fn main() -> Nil {
@@ -14,11 +16,12 @@ pub fn session_iframe_url_includes_encoded_vault_path_test() {
 }
 
 pub fn session_iframe_url_uses_correct_vault_encoding_test() {
-  let encoded =
+  let path = obsidian_vault.vault_path()
+  let expected_encoded =
     "L1VzZXJzL3N0ZXZlLmhheWVzL0xpYnJhcnkvTW9iaWxlIERvY3VtZW50cy9pQ2xvdWR+bWR+b2JzaWRpYW4vRG9jdW1lbnRzL0ZvcmdvdHRlblJlYWxtc1ZhdWx0"
-  let result = opencode_session.session_iframe_url(encoded)
-  result
-  |> should.equal(
-    "http://127.0.0.1:14096/L1VzZXJzL3N0ZXZlLmhheWVzL0xpYnJhcnkvTW9iaWxlIERvY3VtZW50cy9pQ2xvdWR+bWR+b2JzaWRpYW4vRG9jdW1lbnRzL0ZvcmdvdHRlblJlYWxtc1ZhdWx0/session",
-  )
+  opencode_session.session_iframe_url(bit_array.base64_encode(
+    bit_array.from_string(path),
+    False,
+  ))
+  |> should.equal("http://127.0.0.1:14096/" <> expected_encoded <> "/session")
 }
