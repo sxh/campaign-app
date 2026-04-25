@@ -12,7 +12,7 @@ fn encode_base64(_str: String) -> String {
   panic as "encode_base64 is only available on JavaScript target"
 }
 
-pub fn main() {
+pub fn main(note_count: Int) {
   let app =
     lustre.application(
       campaigner_app.init,
@@ -22,7 +22,7 @@ pub fn main() {
   let vault_path = obsidian_vault.vault_path()
   let vault_encoded = encode_base64(vault_path)
   let url = opencode_session.session_iframe_url(vault_encoded)
-  let flags = InitFlags(url, 123)
+  let flags = InitFlags(url, note_count)
   let assert Ok(_) = lustre.start(app, "#app", flags)
   Nil
 }

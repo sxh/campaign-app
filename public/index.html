@@ -9,7 +9,9 @@
   <div id="app"></div>
   <script type="module">
     import { main } from "./campaigner_app_main.mjs";
-    main();
+    const params = new URLSearchParams(window.location.search);
+    const noteCount = parseInt(params.get("noteCount") || "0", 10);
+    main(noteCount);
   </script>
 </body>
 </html>
