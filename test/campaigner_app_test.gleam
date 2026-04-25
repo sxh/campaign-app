@@ -45,6 +45,13 @@ pub fn view_always_has_vault_pane_test() {
   string.contains(html, "Vault") |> should.be_true
 }
 
+pub fn view_displays_note_count_in_vault_pane_test() {
+  let model = campaigner_app.Model("http://example.com/", 87)
+  let view = campaigner_app.view(model)
+  let html = element.to_string(view)
+  string.contains(html, "Notes: 87") |> should.be_true
+}
+
 pub fn vault_encoded_matches_correct_base64_for_vault_path_test() {
   let path = obsidian_vault.vault_path()
   let expected_encoded =
