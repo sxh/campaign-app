@@ -1,5 +1,5 @@
 #!/usr/bin/env escript
-%%! -boot start_clean -pa build/dev/erlang/campaigner_app/ebin -pa build/dev/erlang/gleam_stdlib/ebin -pa build/dev/erlang/gleam_erlang/ebin -pa build/dev/erlang/lustre/ebin -pa build/dev/erlang/gleam_json/ebin -pa build/dev/erlang/gleam_otp/ebin -pa build/dev/erlang/houdini/ebin -pa build/dev/erlang/gleeunit/ebin -pa build/dev/erlang/gleam_javascript/ebin -pa build/dev/erlang/simplifile/ebin -pa build/dev/erlang/filepath/ebin
+%%! -boot start_clean -pa build/dev/erlang/campaigner_app/ebin -pa build/dev/erlang/gleam_stdlib/ebin -pa build/dev/erlang/gleam_erlang/ebin -pa build/dev/erlang/lustre/ebin -pa build/dev/erlang/gleam_json/ebin -pa build/dev/erlang/gleam_otp/ebin -pa build/dev/erlang/houdini/ebin -pa build/dev/erlang/gleeunit/ebin -pa build/dev/erlang/gleam_javascript/ebin
 
 main(_) ->
   cover:start(),

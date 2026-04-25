@@ -19,9 +19,3 @@ pub fn vault_path_has_no_trailing_slash_test() {
   let has_trailing_slash = string.ends_with(path, "/")
   has_trailing_slash |> should.be_false
 }
-
-pub fn note_count_returns_notes_for_given_vault_path_test() {
-  let path = obsidian_vault.vault_path()
-  let count = obsidian_vault.note_count(path)
-  should.be_true(count > 0)
-}
